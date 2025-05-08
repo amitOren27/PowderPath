@@ -12,9 +12,9 @@ map.on('load', () => {
   // Find the first symbol layer to insert below (labels, icons)
   const layers = map.getStyle().layers;
   const firstSymbolLayer = layers.find(layer =>
-  layer.type === 'symbol' &&
-  layer.layout &&
-  layer.layout['text-field']
+    layer.type === 'symbol' &&
+    layer.layout &&
+    layer.layout['text-field']
   );
 
   // Add the GeoJSON source
