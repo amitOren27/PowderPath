@@ -1,5 +1,5 @@
 mapboxgl.accessToken = 'pk.eyJ1IjoicG93ZGVycGF0aCIsImEiOiJjbWFheWd4aG0yMm5qMmlxdWZoc3BuN2duIn0.ACVT0HValXADaLR7Esyfvg';
-const url = 'https://2koy3wx3n3swhlzmienduvjobq0nsgqn.lambda-url.us-east-1.on.aws/';
+const url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
 
 const map = new mapboxgl.Map({
   container: 'map',
