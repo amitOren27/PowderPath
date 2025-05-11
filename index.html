@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PowderPath Map</title>
 
-  <!-- Mapbox CSS -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-
   <!-- Your CSS -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Mapbox JS -->
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <!-- Google Maps JS (with Places Library) -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places&callback=initMap"
+    async
+    defer
+  ></script>
 
   <!-- Your JS -->
   <script src="script.js" defer></script>
@@ -21,7 +22,7 @@
 
   <!-- Top Search Bar -->
   <div class="search-bar">
-    <input type="text" placeholder="Search..." />
+    <input id="search-input" type="text" placeholder="Search..." />
   </div>
 
   <!-- Map -->
