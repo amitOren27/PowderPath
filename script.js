@@ -9,9 +9,9 @@ function initMap() {
     zoomControl: true,
     fullscreenControl: true,
     streetViewControl: true,
-    // zoomControlOptions: {
-    //   position: google.maps.ControlPosition.RIGHT_BOTTOM
-    // },
+     zoomControlOptions: {
+       position: google.maps.ControlPosition.RIGHT_BOTTOM
+     },
     // streetViewControl: true,
     streetViewControlOptions: {
       position: google.maps.ControlPosition.RIGHT_BOTTOM
@@ -43,6 +43,7 @@ function initMap() {
   map.addListener("click", (e) => {
     if (!e.placeId) {
       panel.style.display = "none";
+      clearSearch();
       return;
     }
 
@@ -95,15 +96,32 @@ function initMap() {
 
   const marker = new google.maps.Marker({ map });
 
+  const clearButton = document.getElementById("clear-search");
+
+  // Clear function
+  function clearSearch() {
+    input.value = "";
+    marker.setVisible(false);
+    clearButton.style.display = "none";
+  }
+
+
   autocomplete.addListener("place_changed", () => {
     const place = autocomplete.getPlace();
     if (!place.geometry || !place.geometry.location) return;
 
     map.panTo(place.geometry.location);
-    map.setZoom(15);
+    map.setZoom(17);
     marker.setPosition(place.geometry.location);
     marker.setVisible(true);
+    clearButton.style.display = "block";
   });
+
+  clearButton.addEventListener("click", () => {
+    clearSearch();
+  });
+
+
 
   // === Load and Display Ski Pistes ===
   const lambda_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
@@ -118,7 +136,7 @@ function initMap() {
         const color = getColorForDifficulty(difficulty);
         return {
           strokeColor: color,
-          strokeWeight: 1,
+          strokeWeight: 2,
         };
       });
 
@@ -155,7 +173,7 @@ function initMap() {
 function getColorForDifficulty(difficulty) {
   switch (difficulty) {
     case 'novice': return '#4CAF50';
-    case 'easy': return '#00ccff';
+    case 'easy': return '#3399ff';
     case 'intermediate': return '#ff0000';
     case 'advanced': return '#000000';
     case 'expert': return '#ff6600';

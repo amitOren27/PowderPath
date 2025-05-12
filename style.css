@@ -9,8 +9,11 @@ body {
 
 /* Map Container */
 #map {
-  height: 100%;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  bottom: 60px; /* adjust to match bottom nav height */
+  left: 0;
+  right: 0;
 }
 
 /* Top Search Bar */
@@ -22,16 +25,32 @@ body {
   width: 80%;
   max-width: 400px;
   z-index: 1000;
-  /* Make sure it's above the map */
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .search-bar input {
-  width: 100%;
+  flex: 1;
   padding: 10px 15px;
   font-size: 16px;
-  border-radius: 25px;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border: none;
+  outline: none;
+  border-radius: 0;
+}
+
+.search-bar button#clear-search {
+  padding: 0 15px;
+  height: 100%;
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
 }
 
 /* Bottom Navigation Bar */
