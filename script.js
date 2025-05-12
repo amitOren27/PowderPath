@@ -5,19 +5,97 @@ function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
     center: { lat: 45.2970, lng: 6.5833 },
     zoom: 14,
-    mapTypeId: "terrain"
+    mapTypeId: "terrain",
+    zoomControl: true,
+    fullscreenControl: true,
+    streetViewControl: true,
+    // zoomControlOptions: {
+    //   position: google.maps.ControlPosition.RIGHT_BOTTOM
+    // },
+    // streetViewControl: true,
+    streetViewControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_BOTTOM
+    },
+
+
   });
 
-  // 1. === Search Box using Google Places Autocomplete ===
+  // Create the side panel element
+  const panel = document.createElement("div");
+  panel.id = "info-panel";
+  panel.style.cssText = `
+    position: absolute;
+    top: 20px;
+    right: 60px;
+    width: 320px;
+    max-height: 90%;
+    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    padding: 12px;
+    z-index: 1000;
+    display: none;
+  `;
+  document.body.appendChild(panel);
+
+  // Close panel when clicking on the map (not on POI)
+  map.addListener("click", (e) => {
+    if (!e.placeId) {
+      panel.style.display = "none";
+      return;
+    }
+
+    e.stop(); // Prevent default info window
+
+    const service = new google.maps.places.PlacesService(map);
+    service.getDetails({
+      placeId: e.placeId,
+      fields: [
+        'name',
+        'formatted_address',
+        'photos',
+        'opening_hours',
+        'rating',
+        'user_ratings_total',
+        'geometry',
+        'url'
+      ]
+    }, (place, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+        const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 300 }) || '';
+        const openNow = place.opening_hours?.weekday_text?.join('<br>') || 'Hours not available';
+        const rating = place.rating ? `${place.rating} ★ (${place.user_ratings_total} reviews)` : 'No rating';
+
+        // Set the panel HTML
+        panel.innerHTML = `
+          <div>
+            <div style="text-align: right;">
+              <button onclick="document.getElementById('info-panel').style.display='none'" 
+                style="border:none;background:none;font-size:18px;cursor:pointer;">✖</button>
+            </div>
+            <h3 style="margin: 4px 0;">${place.name}</h3>
+            <p style="margin: 2px 0; font-size: 14px;">${place.formatted_address}</p>
+            ${photoUrl ? `<img src="${photoUrl}" alt="${place.name}"
+              style="width:100%; height:140px; object-fit:cover; border-radius:6px; margin:6px 0;" />` : ''}
+            <p style="margin: 2px 0;"><strong>Rating:</strong> ${rating}</p>
+            <p style="margin: 2px 0;"><strong>Hours:</strong><br>${openNow}</p>
+            <a href="${place.url}" target="_blank" style="font-size: 14px;">View on Google Maps</a>
+          </div>
+        `;
+        panel.style.display = "block";
+      }
+    });
+  });
+
+  // === Search Box using Google Places Autocomplete ===
   const input = document.getElementById("search-input");
   const autocomplete = new google.maps.places.Autocomplete(input);
   autocomplete.bindTo("bounds", map);
 
-  const infoWindow = new google.maps.InfoWindow();
   const marker = new google.maps.Marker({ map });
 
   autocomplete.addListener("place_changed", () => {
-    infoWindow.close();
     const place = autocomplete.getPlace();
     if (!place.geometry || !place.geometry.location) return;
 
@@ -25,25 +103,16 @@ function initMap() {
     map.setZoom(15);
     marker.setPosition(place.geometry.location);
     marker.setVisible(true);
-
-    const content = `
-      <strong>${place.name}</strong><br>
-      ${place.types?.[0] || ''}<br>
-      ${place.formatted_address || ''}
-    `;
-    infoWindow.setContent(content);
-    infoWindow.open(map, marker);
   });
 
-  // 2. === Load and Display Ski Pistes ===
+  // === Load and Display Ski Pistes ===
   const lambda_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
 
   fetch(lambda_url)
     .then((response) => response.json())
     .then((geojson) => {
-      map.data.addGeoJson(geojson); // Load GeoJSON to the map's Data layer
+      map.data.addGeoJson(geojson);
 
-      // Set styling for each feature based on 'difficulty'
       map.data.setStyle((feature) => {
         const difficulty = feature.getProperty('difficulty');
         const color = getColorForDifficulty(difficulty);
@@ -53,30 +122,44 @@ function initMap() {
         };
       });
 
-      // Optional: Info window when clicking a piste
       map.data.addListener('click', (event) => {
         const name = event.feature.getProperty('name') || 'Unnamed trail';
         const difficulty = event.feature.getProperty('difficulty') || 'Unknown';
-        const content = `<strong>${name}</strong><br>Difficulty: ${difficulty}`;
-        infoWindow.setContent(content);
-        infoWindow.setPosition(event.latLng);
-        infoWindow.open(map);
+        const length = event.feature.getProperty('length') || 'N/A';
+        const gradient = event.feature.getProperty('gradient') || 'N/A';
+        const type = event.feature.getProperty('piste:type') || 'Unknown';
+
+        panel.innerHTML = `
+    <div style="text-align: right;">
+      <button onclick="document.getElementById('info-panel').style.display='none'" 
+        style="border:none;background:none;font-size:18px;cursor:pointer;">✖</button>
+    </div>
+    <h3>${name}</h3>
+    <p><strong>Type:</strong> ${type}</p>
+    <p><strong>Difficulty:</strong> ${difficulty}</p>
+    <p><strong>Length:</strong> ${length} km</p>
+    <p><strong>Gradient:</strong> ${gradient}%</p>
+  `;
+
+        panel.style.display = "block";
+        panel.style.top = "20px";
+        panel.style.right = "60px";
       });
+
     })
     .catch((error) => {
       console.error("Failed to load pistes GeoJSON:", error);
     });
 }
 
-// 3. === Helper: Assign color based on difficulty level ===
 function getColorForDifficulty(difficulty) {
   switch (difficulty) {
-    case 'novice': return '#4CAF50';        // Green
-    case 'easy': return '#00ccff';          // Blue
-    case 'intermediate': return '#ff0000';  // Red
-    case 'advanced': return '#000000';      // Black
-    case 'expert': return '#ff6600';        // Orange
-    case 'freeride': return '#ffcc00';      // Yellow
-    default: return '#999999';              // Gray
-}
+    case 'novice': return '#4CAF50';
+    case 'easy': return '#00ccff';
+    case 'intermediate': return '#ff0000';
+    case 'advanced': return '#000000';
+    case 'expert': return '#ff6600';
+    case 'freeride': return '#ffcc00';
+    default: return '#999999';
+  }
 }

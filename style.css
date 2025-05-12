@@ -1,5 +1,6 @@
 /* Reset margins and set full page size */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -20,7 +21,8 @@ html, body {
   transform: translateX(-50%);
   width: 80%;
   max-width: 400px;
-  z-index: 1000; /* Make sure it's above the map */
+  z-index: 1000;
+  /* Make sure it's above the map */
 }
 
 .search-bar input {
@@ -58,4 +60,31 @@ html, body {
   width: 24px;
   height: 24px;
   margin-bottom: 2px;
+}
+
+.custom-place-image {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  margin: 8px 0;
+}
+
+.place-details {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  z-index: 999;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.place-details.hidden {
+  display: none;
 }
