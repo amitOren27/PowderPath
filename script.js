@@ -120,10 +120,10 @@ function initMap() {
 
 
   // === Load and Display Ski Pistes ===
-  const lambda_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
+  const pistes_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
   const infoWindow = new google.maps.InfoWindow();
 
-  fetch(lambda_url)
+  fetch(pistes_url)
     .then((response) => response.json())
     .then((geojson) => {
       map.data.addGeoJson(geojson);
@@ -149,6 +149,43 @@ function initMap() {
     .catch((error) => {
       console.error("Failed to load pistes GeoJSON:", error);
     });
+
+    const aerialwayLayer = new google.maps.Data({ map: map });
+
+    // Load aerialway GeoJSON from your new Lambda
+    const aerialways_url = 'https://vtwjtjfkf3v5apx2xcrk3keruy0uwsgl.lambda-url.us-east-1.on.aws/';
+
+    fetch(aerialways_url)
+      .then((response) => response.json())
+      .then((geojson) => {
+        aerialwayLayer.addGeoJson(geojson);
+
+        // Apply custom style for aerialways
+        aerialwayLayer.setStyle((feature) => {
+          const aerialwayType = feature.getProperty('aerialway') || 'unknown';
+
+          return {
+            strokeColor: '#8E44AD',
+            strokeWeight: 1,
+            strokeOpacity: 0.9
+          };
+        });
+
+        // Add click interaction
+        aerialwayLayer.addListener('click', (event) => {
+          const name = event.feature.getProperty('name') || 'Unnamed lift';
+          const type = event.feature.getProperty('aerialway') || 'Unknown type';
+          const capacity = event.feature.getProperty('capacity') || 'N/A';
+          const content = `<strong>${name}</strong><br>Type: ${type}`;
+          infoWindow.setContent(content);
+          infoWindow.setPosition(event.latLng);
+          infoWindow.open(map);
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to load aerialways GeoJSON:", error);
+      });
+
 }
 
 function getColorForDifficulty(difficulty) {
