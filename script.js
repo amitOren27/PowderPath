@@ -12,12 +12,10 @@ function initMap() {
      zoomControlOptions: {
        position: google.maps.ControlPosition.RIGHT_BOTTOM
      },
-    // streetViewControl: true,
+    streetViewControl: true,
     streetViewControlOptions: {
       position: google.maps.ControlPosition.RIGHT_BOTTOM
     },
-
-
   });
 
   // Create the side panel element
@@ -105,7 +103,6 @@ function initMap() {
     clearButton.style.display = "none";
   }
 
-
   autocomplete.addListener("place_changed", () => {
     const place = autocomplete.getPlace();
     if (!place.geometry || !place.geometry.location) return;
@@ -122,9 +119,9 @@ function initMap() {
   });
 
 
-
   // === Load and Display Ski Pistes ===
   const lambda_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
+  const infoWindow = new google.maps.InfoWindow();
 
   fetch(lambda_url)
     .then((response) => response.json())
@@ -143,27 +140,11 @@ function initMap() {
       map.data.addListener('click', (event) => {
         const name = event.feature.getProperty('name') || 'Unnamed trail';
         const difficulty = event.feature.getProperty('difficulty') || 'Unknown';
-        const length = event.feature.getProperty('length') || 'N/A';
-        const gradient = event.feature.getProperty('gradient') || 'N/A';
-        const type = event.feature.getProperty('piste:type') || 'Unknown';
-
-        panel.innerHTML = `
-    <div style="text-align: right;">
-      <button onclick="document.getElementById('info-panel').style.display='none'" 
-        style="border:none;background:none;font-size:18px;cursor:pointer;">✖</button>
-    </div>
-    <h3>${name}</h3>
-    <p><strong>Type:</strong> ${type}</p>
-    <p><strong>Difficulty:</strong> ${difficulty}</p>
-    <p><strong>Length:</strong> ${length} km</p>
-    <p><strong>Gradient:</strong> ${gradient}%</p>
-  `;
-
-        panel.style.display = "block";
-        panel.style.top = "20px";
-        panel.style.right = "60px";
+        const content = `<strong>${name}</strong><br>Difficulty: ${difficulty}`;
+        infoWindow.setContent(content);
+        infoWindow.setPosition(event.latLng);
+        infoWindow.open(map);
       });
-
     })
     .catch((error) => {
       console.error("Failed to load pistes GeoJSON:", error);
@@ -181,3 +162,11 @@ function getColorForDifficulty(difficulty) {
     default: return '#999999';
   }
 }
+
+window.addEventListener('load', () => {
+  if (typeof google === 'object' && typeof google.maps === 'object') {
+    initMap();
+  } else {
+    console.error("Google Maps JavaScript API failed to load.");
+  }
+});
