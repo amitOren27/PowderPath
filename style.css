@@ -11,7 +11,8 @@ body {
 #map {
   position: absolute;
   top: 0;
-  bottom: 60px; /* adjust to match bottom nav height */
+  bottom: 60px;
+  /* adjust to match bottom nav height */
   left: 0;
   right: 0;
 }
@@ -55,7 +56,7 @@ body {
 
 /* Bottom Navigation Bar */
 .bottom-nav {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   width: 100%;
   background: white;
