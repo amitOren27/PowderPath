@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Route Planner</title>
+  <link rel="stylesheet" href="route_planner.css">
+</head>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places"></script>
+
+<!-- Your JS -->
+<script src="route_planner.js" defer></script>
+
+<body>
+
+  <!-- Top Header Section -->
+  <div class="route-header">
+    <div class="route-title">Plan a Route</div>
+    <div class="route-input-group">
+      <div class="input-column">
+        <input type="text" id="start-location" class="route-input" placeholder="Start Location">
+        <!-- New stops will be inserted here -->
+        <input type="text" id="destination-location" class="route-input" placeholder="Destination">
+      </div>
+      <button id="add-stop-btn" class="add-stop-btn">+</button>
+
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <img src="https://img.icons8.com/ios-filled/50/000000/map.png" alt="Map" />
+      <span>Map</span>
+    </a>
+    <a href="route_planner.html" class="nav-item">
+      <img src="https://img.icons8.com/ios-filled/50/000000/route.png" alt="Route Planner" />
+      <span>Route</span>
+    </a>
+    <a href="trails.html" class="nav-item">
+      <img src="https://img.icons8.com/ios-filled/50/000000/skiing.png" alt="Trails" />
+      <span>Trails</span>
+    </a>
+    <a href="weather.html" class="nav-item">
+      <img src="https://img.icons8.com/ios-filled/50/000000/snow-storm.png" alt="Weather" />
+      <span>Weather</span>
+    </a>
+  </div>
+
+  <script src="route_planner.js"></script>
+
+</body>
+
+</html>
