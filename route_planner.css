@@ -24,7 +24,7 @@ body {
 
 .route-input {
   width: 600%;
-  max-width: 1500px;
+  max-width: 1400px;
   padding: 10px 13px;
   margin: 8px 0;
   font-size: 16px;
@@ -46,7 +46,7 @@ body {
   align-items: center;
   height: 60px;
   border-top: 1px solid #ccc;
-  z-index: 1000;
+  z-index: 9000;
 }
 
 .nav-item {
@@ -66,13 +66,21 @@ body {
 
 .route-input-group {
   display: flex;
+  justify-content: space-between;
+  /* Ensures space between input column and + button */
   align-items: center;
-  gap: 16px;
-  margin-left: 20px;
-  margin-top: 10px;
+  margin: 10px 20px;
+}
+
+.route-input-wrapper {
+  display: flex;
+  align-items: center;
+  margin: 20px;
+  position: relative;
 }
 
 .input-column {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -87,10 +95,13 @@ body {
   font-size: 30px;
   border: none;
   cursor: pointer;
-  margin-top: 10px;
-  margin-left: 1050px;
   transition: background-color 0.2s ease;
+  margin-left: 20px;
+  /* spacing from the inputs */
+  flex-shrink: 0;
+  align-self: center;
 }
+
 
 #add-stop-btn:hover {
   background-color: #444;
