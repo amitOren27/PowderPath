@@ -7,6 +7,16 @@ body {
   width: 100%;
 }
 
+/* When hovering over a bottom navigation button */
+.bottom-nav .nav-item:hover {
+  background-color: #e0f0ff; /* Light blue background on hover */
+  cursor: pointer; /* Change mouse to pointer (hand icon) */
+  border-radius: 10px;
+}
+.bottom-nav .nav-item:active {
+  background-color: #cce6ff; /* Slightly darker blue on click */
+}
+
 /* Map Container */
 #map {
   position: absolute;
@@ -107,4 +117,39 @@ body {
 
 .place-details.hidden {
   display: none;
+}
+
+/* Modal container */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.weather-page {
+  text-align: center;
+  padding: 40px;
+}
+
+.weather-links a {
+  display: inline-block;
+  margin: 15px;
+  padding: 12px 24px;
+  background-color: #e0f0ff;
+  color: #000;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+  font-size: 18px;
+}
+
+.weather-links a:hover {
+  background-color: #cce6ff;
 }

@@ -207,3 +207,41 @@ window.addEventListener('load', () => {
     console.error("Google Maps JavaScript API failed to load.");
   }
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const weatherBtn = document.querySelector(".nav-item:nth-child(4)"); // Weather button
+  const modal = document.getElementById("weather-modal");
+  const closeBtn = document.getElementById("close-weather");
+  const iframeDiv = document.getElementById("weather-frame");
+  const iframe = document.getElementById("weather-iframe");
+
+  // Open modal
+  weatherBtn.addEventListener("click", () => {
+    modal.classList.remove("hidden");
+    iframeDiv.classList.add("hidden");
+    iframe.src = "";
+  });
+
+  // Close modal
+  closeBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    iframe.src = "";
+  });
+
+  // Handle area button click
+  document.querySelectorAll(".area-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const url = btn.getAttribute("data-url");
+      iframe.setAttribute("src", url);
+      iframeDiv.classList.remove("hidden");
+    });
+  });
+
+  // Optional: close by clicking outside modal
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.classList.add("hidden");
+      iframe.src = "";
+    }
+  });
+});
