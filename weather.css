@@ -1,0 +1,114 @@
+body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-image: url('https://images.pexels.com/photos/1929561/pexels-photo-1929561.jpeg?cs=srgb&dl=pexels-aeppli-1929561.jpg&fm=jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      text-shadow: 1px 1px 4px #0c0c0c;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin: 20px 0 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+
+    .weather-links {
+      margin-bottom: 10px;
+    }
+
+    .weather-links button {
+      margin: 10px;
+      padding: 8px 16px;
+      background-color: rgba(255, 255, 255, 0.7);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .iframe-container {
+  display: flex; /* hidden by default */
+  justify-content: center;
+  align-items: center;
+  margin: 20px auto;
+}
+
+iframe {
+  width: 750px;
+  height: 450px;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(6, 6, 6, 0.4);
+  background-color: #fff;
+}
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 60px;
+      border-top: 1px solid #ccc;
+      z-index: 1000;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .nav-item img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background-color: #e0f0ff;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .nav-item:active {
+      background-color: #cce6ff;
+    }
+
+    .nav-item a {
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .weather-links button.active {
+     background-color: #3399ff !important; /* Blue for active */
+     color: white;
+     font-weight: bold;
+    }
+    .bottom-nav * {
+    text-shadow: none;
+    }
+    /* When hovering over a bottom navigation button */
+.weather-links:hover {
+  background-color: #e0f0ff; /* Light blue background on hover */
+  cursor: pointer; /* Change mouse to pointer (hand icon) */
+  border-radius: 10px;
+}
