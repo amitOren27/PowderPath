@@ -101,6 +101,17 @@ window.addEventListener("load", () => {
     console.error("Google Maps failed to load.");
   }
 });
+ // Get current path (e.g. "/weather.html")
+  const currentPage = window.location.pathname.split('/').pop();
+
+  // Loop through nav links
+  document.querySelectorAll('.bottom-nav a').forEach(link => {
+    const linkPage = link.getAttribute('href');
+
+    if (linkPage === currentPage) {
+      link.classList.add('active'); // mark as active
+    }
+  });
 
 
 

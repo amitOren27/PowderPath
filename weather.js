@@ -22,3 +22,14 @@ function loadWeather(url, buttonElement) {
       const defaultBtn = document.querySelector('.weather-links button');
       loadWeather('https://www.valthorens.com/en/meteo/', defaultBtn);
     };
+     // Get current path (e.g. "/weather.html")
+  const currentPage = window.location.pathname.split('/').pop();
+
+  // Loop through nav links
+  document.querySelectorAll('.bottom-nav a').forEach(link => {
+    const linkPage = link.getAttribute('href');
+
+    if (linkPage === currentPage) {
+      link.classList.add('active'); // mark as active
+    }
+  });
