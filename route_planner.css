@@ -1,49 +1,136 @@
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: Arial, sans-serif;
-  background: url('https://images.pexels.com/photos/1929561/pexels-photo-1929561.jpeg?cs=srgb&dl=pexels-aeppli-1929561.jpg&fm=jpg') no-repeat center center fixed;
+  background: url('https://images.pexels.com/photos/1929561/pexels-photo-1929561.jpeg') no-repeat center center fixed;
   background-size: cover;
 }
 
-#map {
-  width: 1500%;
-  max-width: 2000px;
-  height: 100px;
-  margin: 5px auto;
-  border: 2px solid #ccc;
-  /* border-radius: 0px; */
-  /* margin-top: 10px; */
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-.route-title {
+.planner-header h1 {
+  display: inline-block;
   background-color: #222;
   color: white;
-  font-size: 22px;
+  padding: 6px 16px;
+  font-size: 18px;
+  border-radius: 16px;
+  margin: 0 auto 12px auto;
+}
+
+.planner-header {
   text-align: center;
-  padding: 6px 20px;
-  border-radius: 20px;
-  width: fit-content;
-  margin: 0 auto 15px auto;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.route-inputs {
+  margin-bottom: 12px;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.input-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .route-input {
-  width: 600%;
-  max-width: 1400px;
+  width: 100%;
   padding: 10px 13px;
-  margin: 8px 0;
-  margin-left: 100px;
   font-size: 16px;
   border: 2px solid #444;
   border-radius: 12px;
   background-color: #e6f7ff;
-  display: block;
-
 }
 
-     /* Bottom Navigation Bar */
+#add-stop-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: black;
+  color: white;
+  cursor: pointer;
+  position: absolute;
+  left: 100%;
+  top: 44%; /* Adjusted for better visual alignment */
+  transform: translateY(-50%);
+}
+
+#add-stop-btn:hover {
+  background-color: #444;
+}
+
+.delete-stop-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #333;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.difficulty-filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.difficulty-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: white;
+  color: black;
+}
+
+.difficulty-btn[data-level="novice"] { border-color: #4CAF50; }
+.difficulty-btn[data-level="easy"] { border-color: #3399ff; }
+.difficulty-btn[data-level="intermediate"] { border-color: #ff3333; }
+.difficulty-btn[data-level="extreme"] { border-color: #000; background-color: #f5f1f1; }
+
+.difficulty-btn.active {
+  font-weight: bold;
+  transform: scale(1.05);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+}
+
+#map {
+  width: 100%;
+  height: calc(100vh - 360px);
+  min-height: 300px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+/* Bottom Navigation */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -55,181 +142,30 @@ body {
   height: 60px;
   border-top: 1px solid #ccc;
   z-index: 1000;
-  text-shadow: none;
-  color:black;
 }
 
 .nav-item {
-  display: flex;
-  flex: 1; /* Equal width for all items */
-  border-left: 1px solid #ccc;
-  height: 100%;
-}
-
-.nav-item:first-child {
-  border-left: none;
-}
-
-.nav-item a {
+  flex: 1;
+  text-align: center;
   text-decoration: none;
-  color: inherit;
+  color: black;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  transition: background-color 0.2s ease;
 }
 
-/* Hover and click effects */
-.nav-item:hover {
-  background-color: #e0f0ff;
-}
-
-.nav-item:active {
-  background-color: #cce6ff;
-}
-
-/* Icon style */
 .nav-item img {
   width: 24px;
   height: 24px;
   margin-bottom: 2px;
 }
 
-/* Highlight active page */
-.nav-item a.active {
+.nav-item:hover {
+  background-color: #e0f0ff;
+}
+
+.nav-item.active {
   background-color: #a5d1fd;
-  color: black;
-}
-
-.route-input-group {
-  display: flex;
-  /*justify-content: space-between;*/
-  /* Ensures space between input column and + button */
-  align-items: center;
-  margin: 0px 20px;
-}
-
-.route-input-wrapper {
-  display: flex;
-  align-items: center;
-  margin: 4px;
-  position: relative;
-}
-
-.input-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-#add-stop-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 55%;
-  background-color: black;
-  color: white;
-  font-size: 30px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  position: absolute;
-  right: 250px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-*/ #add-stop-btn:hover {
-  background-color: #444;
-}
-
-.route-input+.route-input {
-  margin-top: 8px;
-}
-
-.stop-container {
-  display: flex;
-  align-items: center;
-  gap: 0px;
-  margin-bottom: 8px;
-}
-
-.delete-stop-btn {
-  background-color: transparent;
-  color: rgb(43, 42, 42);
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.difficulty-filter {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.difficulty-btn {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 6px 14px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
-  background-color: white;
-  /* רקע לבן */
-  color: black;
-  /* טקסט שחור */
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.difficulty-btn:hover {
-  background-color: #f0f0f0;
-}
-.difficulty-checkbox {
-  margin: 0;
-  transform: scale(1);
-  cursor: pointer;
-}
-.label-text {
-  flex-grow: 1;
-  text-align: left;
-}
-
-.difficulty-btn[data-level="novice"] {
-  border-color: #4CAF50;
-}
-
-.difficulty-btn[data-level="easy"] {
-  border-color: #3399ff;
-}
-
-.difficulty-btn[data-level="intermediate"] {
-  border-color: #ff3333;
-}
-
-.difficulty-btn[data-level="extreme"] {
-  background-color: #f5f1f1;
-  border-color: #000000;
-}
-
-.difficulty-btn.active {
-  background-color: #f0f0f0;
-  /* רקע בהיר */
-  font-weight: bold;
-  transform: scale(1.05);
-  /* מעט גדילה */
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
-  /* הילה קטנה */
-}
-
-
-.hidden {
-  display: none;
 }

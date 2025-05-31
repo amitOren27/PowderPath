@@ -9,6 +9,7 @@ body {
       color: #fff;
       text-align: center;
       text-shadow: 1px 1px 4px #0c0c0c;
+      font-family: Arial, sans-serif;
     }
 
     h2 {
@@ -45,7 +46,7 @@ body {
 
 iframe {
   width: 750px;
-  height: 450px;
+  height: 480px;
   border: 2px solid #fff;
   border-radius: 12px;
   box-shadow: 0 0 15px rgba(6, 6, 6, 0.4);

@@ -19,30 +19,31 @@ function initMap() {
   const addStopBtn = document.getElementById("add-stop-btn");
 
   addStopBtn.addEventListener("click", () => {
-    // === Create container div for stop input and delete button ===
-    const stopContainer = document.createElement("div");
-    stopContainer.className = "stop-container";
+    const inputColumn = document.getElementById("inputs-container");
+    const destinationInput = document.getElementById("destination-location");
 
-    // Stop input
+    // Create a wrapper row for the new stop input and delete button
+    const stopRow = document.createElement("div");
+    stopRow.className = "input-row";
+
     const stopInput = document.createElement("input");
     stopInput.type = "text";
     stopInput.className = "route-input";
     stopInput.placeholder = "Stop";
 
-    // Delete button
     const deleteBtn = document.createElement("button");
     deleteBtn.innerText = "✖";
     deleteBtn.className = "delete-stop-btn";
-    deleteBtn.onclick = () => stopContainer.remove();
+    deleteBtn.onclick = () => stopRow.remove();
 
-    // Assemble
-    stopContainer.appendChild(stopInput);
-    stopContainer.appendChild(deleteBtn);
+    stopRow.appendChild(stopInput);
+    stopRow.appendChild(deleteBtn);
 
-    // Insert before destination
-    inputColumn.insertBefore(stopContainer, destInput);
+    // Insert the new stop row right before the destination input row
+    const rows = inputColumn.querySelectorAll(".input-row");
+    const destinationRow = [...rows].find(row => row.contains(destinationInput));
+    inputColumn.insertBefore(stopRow, destinationRow);
 
-    // Add Autocomplete
     new google.maps.places.Autocomplete(stopInput).bindTo("bounds", map);
   });
 }

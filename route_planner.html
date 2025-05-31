@@ -1,89 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-  <title>Route Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PowderPath - Route Planner</title>
   <link rel="stylesheet" href="route_planner.css">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places"></script>
+  <script src="route_planner.js" defer></script>
 </head>
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places"></script>
-
-<!-- Your JS -->
-<script src="route_planner.js" defer></script>
-
 <body>
-
-  <!-- Top Header Section -->
-  <div class="route-header">
-    <div class="overlay"></div>
-    <div class="route-title">Plan a Route</div>
-    <div class="route-input-wrapper">
-      <div class="input-column" id="inputs-container">
-        <input type="text" id="start-location" class="route-input" placeholder="Start Location">
-        <!-- New stops will be inserted here -->
-        <input type="text" id="destination-location" class="route-input" placeholder="Destination">
+<main>
+  <header class="planner-header">
+    <h1>Plan a Route</h1>
+    <section class="route-inputs">
+      <div class="input-wrapper">
+        <div class="input-column" id="inputs-container">
+          <div class="input-row">
+            <input type="text" id="start-location" class="route-input" placeholder="Start Location">
+          </div>
+          <div class="input-row">
+            <input type="text" id="destination-location" class="route-input" placeholder="Destination">
+          </div>
+        </div>
+        <button id="add-stop-btn" title="Add Stop">+</button>
       </div>
-      <button id="add-stop-btn">+</button>
-    </div>
-  </div>
+    </section>
+    <section class="difficulty-filter">
+      <label class="difficulty-btn" data-level="novice">Novice<input type="checkbox" class="difficulty-checkbox"></label>
+      <label class="difficulty-btn" data-level="easy">Easy<input type="checkbox" class="difficulty-checkbox"></label>
+      <label class="difficulty-btn" data-level="intermediate">Intermediate<input type="checkbox" class="difficulty-checkbox"></label>
+      <label class="difficulty-btn" data-level="extreme">Extreme<input type="checkbox" class="difficulty-checkbox"></label>
+    </section>
+  </header>
 
-  <!-- Bottom Navigation Bar -->
-  <div class="bottom-nav">
-    <div class="nav-item">
-      <a href="index.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/map.png" alt="Map" />
-        <span>Map</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="route_planner.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/route.png" alt="Route Planner" />
-        <span>Route Planner</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="#">
-        <img src="https://img.icons8.com/ios-filled/50/000000/skiing.png" alt="Trails" />
-        <span>Trails</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="weather.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/snow-storm.png" alt="Weather" />
-        <span>Weather</span>
-      </a>
-    </div>
-  </div>
+  <section id="map"></section>
+</main>
 
-  <div class="difficulty-filter">
-    <label class="difficulty-btn" data-level="novice">
-      Novice
-      <input type="checkbox" class="difficulty-checkbox" />
-    </label>
-
-    <label class="difficulty-btn" data-level="easy">
-      Easy
-      <input type="checkbox" class="difficulty-checkbox" />
-    </label>
-
-    <label class="difficulty-btn" data-level="intermediate">
-      Intermediate
-      <input type="checkbox" class="difficulty-checkbox" />
-    </label>
-
-    <label class="difficulty-btn" data-level="extreme">
-      Extreme
-      <input type="checkbox" class="difficulty-checkbox" />
-    </label>
-  </div>
-  <div id="map" style="width: 900%; height: 650px; margin-top: 10px;"></div>
-
-  <script src="route_planner.js"></script>
-  <script async defer
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places">
-  </script>
-
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">
+    <img src="https://img.icons8.com/ios-filled/50/000000/map.png" alt="Map">
+    <span>Map</span>
+  </a>
+  <a href="route_planner.html" class="nav-item active">
+    <img src="https://img.icons8.com/ios-filled/50/000000/route.png" alt="Route Planner">
+    <span>Route Planner</span>
+  </a>
+  <a href="#" class="nav-item">
+    <img src="https://img.icons8.com/ios-filled/50/000000/skiing.png" alt="Trails">
+    <span>Trails</span>
+  </a>
+  <a href="weather.html" class="nav-item">
+    <img src="https://img.icons8.com/ios-filled/50/000000/snow-storm.png" alt="Weather">
+    <span>Weather</span>
+  </a>
+</nav>
 </body>
-
 </html>
