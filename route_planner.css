@@ -3,11 +3,20 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  font-family: Arial, sans-serif;
   background: url('https://images.pexels.com/photos/1929561/pexels-photo-1929561.jpeg?cs=srgb&dl=pexels-aeppli-1929561.jpg&fm=jpg') no-repeat center center fixed;
   background-size: cover;
 }
 
-
+#map {
+  width: 1500%;
+  max-width: 2000px;
+  height: 100px;
+  margin: 5px auto;
+  border: 2px solid #ccc;
+  /* border-radius: 0px; */
+  /* margin-top: 10px; */
+}
 
 .route-title {
   background-color: #222;
@@ -97,7 +106,7 @@ body {
 
 .route-input-group {
   display: flex;
-  justify-content: space-between;
+  /*justify-content: space-between;*/
   /* Ensures space between input column and + button */
   align-items: center;
   margin: 0px 20px;
@@ -106,7 +115,7 @@ body {
 .route-input-wrapper {
   display: flex;
   align-items: center;
-  margin: 10px;
+  margin: 4px;
   position: relative;
 }
 
@@ -114,13 +123,13 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
 }
 
 #add-stop-btn {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 55%;
   background-color: black;
   color: white;
   font-size: 30px;
@@ -128,7 +137,7 @@ body {
   cursor: pointer;
   transition: background-color 0.2s ease;
   position: absolute;
-  right: 160px;
+  right: 250px;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -144,7 +153,7 @@ body {
 .stop-container {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0px;
   margin-bottom: 8px;
 }
 
@@ -159,11 +168,15 @@ body {
 .difficulty-filter {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 16px;
 }
 
 .difficulty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   padding: 6px 14px;
   border: 2px solid transparent;
   border-radius: 20px;
@@ -176,6 +189,18 @@ body {
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
+.difficulty-btn:hover {
+  background-color: #f0f0f0;
+}
+.difficulty-checkbox {
+  margin: 0;
+  transform: scale(1);
+  cursor: pointer;
+}
+.label-text {
+  flex-grow: 1;
+  text-align: left;
+}
 
 .difficulty-btn[data-level="novice"] {
   border-color: #4CAF50;
