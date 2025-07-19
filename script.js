@@ -120,7 +120,7 @@ function initMap() {
 
 
   // === Load and Display Ski Pistes ===
-  const pistes_url = 'https://7zu3uvx6vzepkmqjc36zcm2xhi0dhrjy.lambda-url.us-east-1.on.aws/';
+  const pistes_url = 'https://pzacz4eagty6wkmi7d366e25ie0yvdmw.lambda-url.us-east-1.on.aws/';
   const infoWindow = new google.maps.InfoWindow();
 
   fetch(pistes_url)
@@ -153,7 +153,7 @@ function initMap() {
     const aerialwayLayer = new google.maps.Data({ map: map });
 
     // Load aerialway GeoJSON from your new Lambda
-    const aerialways_url = 'https://vtwjtjfkf3v5apx2xcrk3keruy0uwsgl.lambda-url.us-east-1.on.aws/';
+    const aerialways_url = 'https://5ahe25yvc5nbe3aclzso6xebdq0fcxho.lambda-url.us-east-1.on.aws/';
 
     fetch(aerialways_url)
       .then((response) => response.json())
