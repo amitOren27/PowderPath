@@ -1,69 +1,92 @@
+/* global google */
 let map;
+let originAutocomplete, destinationAutocomplete;
 
 function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 45.2970, lng: 6.5833 },
-    zoom: 14,
-    mapTypeId: "terrain"
+  // Basic map centred roughly on Val Thorens for now
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 45.297, lng: 6.580 },
+    zoom: 13,
+    mapId: 'POWDERPATH_BASE', // optional custom map style
   });
-  window.initMap;
 
-  // Autocomplete for start & destination
-  const startInput = document.getElementById("start-location");
-  const destInput = document.getElementById("destination-location");
-  const inputColumn = document.querySelector(".input-column");
-
-  new google.maps.places.Autocomplete(startInput).bindTo("bounds", map);
-  new google.maps.places.Autocomplete(destInput).bindTo("bounds", map);
-
-  const addStopBtn = document.getElementById("add-stop-btn");
-
-  addStopBtn.addEventListener("click", () => {
-    const inputColumn = document.getElementById("inputs-container");
-    const destinationInput = document.getElementById("destination-location");
-
-    // Create a wrapper row for the new stop input and delete button
-    const stopRow = document.createElement("div");
-    stopRow.className = "input-row";
-
-    const stopInput = document.createElement("input");
-    stopInput.type = "text";
-    stopInput.className = "route-input";
-    stopInput.placeholder = "Stop";
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.innerText = "✖";
-    deleteBtn.className = "delete-stop-btn";
-    deleteBtn.onclick = () => stopRow.remove();
-
-    stopRow.appendChild(stopInput);
-    stopRow.appendChild(deleteBtn);
-
-    // Insert the new stop row right before the destination input row
-    const rows = inputColumn.querySelectorAll(".input-row");
-    const destinationRow = [...rows].find(row => row.contains(destinationInput));
-    inputColumn.insertBefore(stopRow, destinationRow);
-
-    new google.maps.places.Autocomplete(stopInput).bindTo("bounds", map);
-  });
+  initAutocomplete();
+  initUIEvents();
 }
 
-window.addEventListener("load", () => {
-  if (typeof google === "object" && typeof google.maps === "object") {
-    initMap();
-  } else {
-    console.error("Google Maps failed to load.");
-  }
-});
+/* ---------- Places Autocomplete on the two mandatory inputs ---------- */
+function initAutocomplete() {
+  const originInput = document.getElementById('origin-input');
+  const destInput   = document.getElementById('destination-input');
 
-// Get current path (e.g. "/weather.html")
-const currentPage = window.location.pathname.split('/').pop();
+  const opts = {
+    fields: ['place_id', 'geometry', 'name', 'formatted_address'],
+  };
 
-// Loop through nav links
-document.querySelectorAll('.bottom-nav a').forEach(link => {
-  const linkPage = link.getAttribute('href');
-  if (linkPage === currentPage) {
-    link.classList.add('active'); // mark as active
-  }
-});
+  originAutocomplete      = new google.maps.places.Autocomplete(originInput, opts);
+  destinationAutocomplete = new google.maps.places.Autocomplete(destInput, opts);
+
+  // In later stages we'll read the geometry here and call routing
+}
+
+/* ---------- Basic UI wiring (collapse, swap, add stop) ---------- */
+function initUIEvents() {
+  /* panel collapse on mobile */
+  const sidebar   = document.getElementById('sidebar');
+  const collapseB = document.getElementById('collapse-btn');
+  collapseB.addEventListener('click', () => sidebar.classList.add('collapsed'));
+
+  // Tap map to reopen panel on mobile
+  map.addListener('click', () => {
+    if (window.innerWidth <= 768) sidebar.classList.remove('collapsed');
+  });
+
+  /* swap origin ↔︎ destination */
+  document.getElementById('swap-btn').addEventListener('click', () => {
+    const originVal = document.getElementById('origin-input').value;
+    const destVal   = document.getElementById('destination-input').value;
+    document.getElementById('origin-input').value = destVal;
+    document.getElementById('destination-input').value = originVal;
+  });
+
+  /* add stop (placeholder div – drag/sort comes in Stage 3) */
+  document.getElementById('add-stop-btn').addEventListener('click', addStopRow);
+}
+
+let stopCount = 0;
+function addStopRow() {
+  stopCount += 1;
+
+  const container = document.getElementById('stops-container');
+  const row = document.createElement('div');
+  row.className   = 'stop-row';
+  row.dataset.index = stopCount;
+
+  row.innerHTML = `
+    <input type="text" class="stop-input" placeholder="Intermediate stop" />
+    <button type="button" class="delete-stop" title="Remove">✕</button>
+  `;
+  container.appendChild(row);
+
+  // simple remove handler
+  row.querySelector('.delete-stop').addEventListener('click', () => row.remove());
+
+  // Stage 2 +: plug each new input into Autocomplete as well
+}
+
+function positionSwapArrow() {
+  const stack  = document.querySelector('.pill-stack');
+  const origin = stack.querySelector('.stop-row.origin');
+  const dest   = stack.querySelector('.stop-row.destination');
+  const arrow  = document.getElementById('swap-btn');
+  if (!origin || !dest || !arrow) return;
+
+  const originBottom = origin.offsetTop + origin.offsetHeight;
+  const destTop      = dest.offsetTop;
+  const mid          = (originBottom + destTop) / 2;          // middle between pills
+
+  arrow.style.top = (mid - (arrow.offsetHeight / 2) + 2) + 'px';
+}
+window.addEventListener('load', positionSwapArrow);
+window.addEventListener('resize', positionSwapArrow);
 
