@@ -1,92 +1,138 @@
 /* global google */
 let map;
-let originAutocomplete, destinationAutocomplete;
+let originAC, destinationAC;
+
+const acOptions = {
+  fields: ['place_id', 'geometry', 'name', 'formatted_address'],
+};
 
 function initMap() {
-  // Basic map centred roughly on Val Thorens for now
   map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: 45.297, lng: 6.580 },
+    center: { lat: 45.297, lng: 6.58 },
     zoom: 13,
-    mapId: 'POWDERPATH_BASE', // optional custom map style
+    mapId: 'POWDERPATH_BASE'
   });
 
   initAutocomplete();
   initUIEvents();
+  updateStopsUI(); // build initial separator + arrow position
 }
 
-/* ---------- Places Autocomplete on the two mandatory inputs ---------- */
 function initAutocomplete() {
-  const originInput = document.getElementById('origin-input');
-  const destInput   = document.getElementById('destination-input');
-
-  const opts = {
-    fields: ['place_id', 'geometry', 'name', 'formatted_address'],
-  };
-
-  originAutocomplete      = new google.maps.places.Autocomplete(originInput, opts);
-  destinationAutocomplete = new google.maps.places.Autocomplete(destInput, opts);
-
-  // In later stages we'll read the geometry here and call routing
+  originAC = new google.maps.places.Autocomplete(
+    document.getElementById('origin-input'),
+    acOptions
+  );
+  destinationAC = new google.maps.places.Autocomplete(
+    document.getElementById('destination-input'),
+    acOptions
+  );
 }
 
-/* ---------- Basic UI wiring (collapse, swap, add stop) ---------- */
+function attachAutocomplete(inputEl) {
+  new google.maps.places.Autocomplete(inputEl, acOptions);
+}
+
 function initUIEvents() {
-  /* panel collapse on mobile */
-  const sidebar   = document.getElementById('sidebar');
-  const collapseB = document.getElementById('collapse-btn');
-  collapseB.addEventListener('click', () => sidebar.classList.add('collapsed'));
-
-  // Tap map to reopen panel on mobile
-  map.addListener('click', () => {
-    if (window.innerWidth <= 768) sidebar.classList.remove('collapsed');
-  });
-
-  /* swap origin ↔︎ destination */
-  document.getElementById('swap-btn').addEventListener('click', () => {
-    const originVal = document.getElementById('origin-input').value;
-    const destVal   = document.getElementById('destination-input').value;
-    document.getElementById('origin-input').value = destVal;
-    document.getElementById('destination-input').value = originVal;
-  });
-
-  /* add stop (placeholder div – drag/sort comes in Stage 3) */
+  document.getElementById('swap-btn').addEventListener('click', swapOriginDestination);
   document.getElementById('add-stop-btn').addEventListener('click', addStopRow);
+  window.addEventListener('resize', updateStopsUI);
 }
 
-let stopCount = 0;
+function swapOriginDestination() {
+  const a = document.getElementById('origin-input');
+  const b = document.getElementById('destination-input');
+  [a.value, b.value] = [b.value, a.value];
+  updateStopsUI(); // reposition arrow/separator
+}
+
 function addStopRow() {
-  stopCount += 1;
+  const stack = document.querySelector('.pill-stack');
+  const destinationRow = stack.querySelector('.stop-row.destination');
 
-  const container = document.getElementById('stops-container');
   const row = document.createElement('div');
-  row.className   = 'stop-row';
-  row.dataset.index = stopCount;
-
+  row.className = 'stop-row intermediate';
   row.innerHTML = `
+    <span class="stop-icon material-icons">stop_circle</span>
     <input type="text" class="stop-input" placeholder="Intermediate stop" />
-    <button type="button" class="delete-stop" title="Remove">✕</button>
+    <button type="button" class="delete-stop" aria-label="Remove stop">
+      <span class="material-icons">close</span>
+    </button>
   `;
-  container.appendChild(row);
+  stack.insertBefore(row, destinationRow);
+  attachAutocomplete(row.querySelector('.stop-input'));
 
-  // simple remove handler
-  row.querySelector('.delete-stop').addEventListener('click', () => row.remove());
+  row.querySelector('.delete-stop').addEventListener('click', () => {
+    row.remove();
+    updateAddStopLabel();
+    updateStopsUI();
+  });
 
-  // Stage 2 +: plug each new input into Autocomplete as well
+  updateAddStopLabel();
+  updateStopsUI();
 }
 
-function positionSwapArrow() {
-  const stack  = document.querySelector('.pill-stack');
-  const origin = stack.querySelector('.stop-row.origin');
-  const dest   = stack.querySelector('.stop-row.destination');
-  const arrow  = document.getElementById('swap-btn');
-  if (!origin || !dest || !arrow) return;
-
-  const originBottom = origin.offsetTop + origin.offsetHeight;
-  const destTop      = dest.offsetTop;
-  const mid          = (originBottom + destTop) / 2;          // middle between pills
-
-  arrow.style.top = (mid - (arrow.offsetHeight / 2) + 2) + 'px';
+function updateAddStopLabel() {
+  const label = document.getElementById('add-stop-label');
+  const count = document.querySelectorAll('.pill-stack .stop-row.intermediate').length;
+  label.textContent = count > 0 ? 'Add destination' : 'Add stop';
 }
-window.addEventListener('load', positionSwapArrow);
-window.addEventListener('resize', positionSwapArrow);
 
+/**
+ * Build dotted separators between each adjacent pair of stops.
+ * Show/hide swap button. Position separators & arrow.
+ */
+function updateStopsUI() {
+  const stack = document.querySelector('.pill-stack');
+  const swapBtn = document.getElementById('swap-btn');
+
+  // Remove existing separators
+  stack.querySelectorAll('.stop-separator').forEach(el => el.remove());
+
+  const stops = Array.from(stack.querySelectorAll('.stop-row'));
+  const hasIntermediate = stack.querySelectorAll('.stop-row.intermediate').length > 0;
+
+  // Toggle swap button
+  swapBtn.style.display = hasIntermediate ? 'none' : 'block';
+
+  // Create separators for each adjacent pair
+  for (let i = 0; i < stops.length - 1; i++) {
+    const sep = document.createElement('div');
+    sep.className = 'stop-separator';
+    sep.innerHTML = '<span class="material-icons">more_vert</span>';
+    stack.appendChild(sep);
+  }
+
+  // Position separators & arrow after they exist in DOM
+  positionOverlayElements();
+}
+
+function positionOverlayElements() {
+  const stack = document.querySelector('.pill-stack');
+  const stops = Array.from(stack.querySelectorAll('.stop-row'));
+  const separators = Array.from(stack.querySelectorAll('.stop-separator'));
+  const swapBtn = document.getElementById('swap-btn');
+
+  // Position each separator between its pair
+  for (let i = 0; i < separators.length; i++) {
+    const above = stops[i];
+    const below = stops[i + 1];
+    const sep = separators[i];
+    const aboveBottom = above.offsetTop + above.offsetHeight;
+    const belowTop = below.offsetTop;
+    const mid = (aboveBottom + belowTop) / 2;
+    sep.style.top = (mid - sep.offsetHeight / 2) + 'px';
+  }
+
+  // Position arrow only if visible (no intermediates)
+  if (swapBtn.style.display !== 'none' && stops.length === 2) {
+    const origin = stops[0];
+    const dest = stops[1];
+    const originBottom = origin.offsetTop + origin.offsetHeight;
+    const destTop = dest.offsetTop;
+    const mid = (originBottom + destTop) / 2;
+    swapBtn.style.top = (mid - swapBtn.offsetHeight / 2) + 'px';
+  }
+}
+
+window.initMap = initMap;

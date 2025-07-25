@@ -72,11 +72,9 @@ html, body, #container { height: 100%; margin: 0; }
 .stop-icon.red { color: var(--pin-red); }
 
 /* dotted vertical separator */
-.pill-stack .stop-separator {
+.stop-separator {
   position: absolute;
   left: 0;
-  top: 50%;                     /* halfway between origin & destination */
-  transform: translateY(-50%);
   width: var(--gutter);
   height: 12px;
   display: flex;
@@ -85,7 +83,7 @@ html, body, #container { height: 100%; margin: 0; }
   pointer-events: none;
   margin-left: 10px;                     /* remove any margins */
 }
-.pill-stack .stop-separator .material-icons {
+.stop-separator .material-icons {
   font-size: 18px;
   color: var(--grey);
   line-height: 1;
@@ -93,7 +91,7 @@ html, body, #container { height: 100%; margin: 0; }
 
 /* pill‑style input */
 .stop-input {
-  flex: 0.92;
+  flex: 0.85;
   padding: 10px 14px;
   font-size: 0.95rem;
   border: 1px solid var(--pill-border);
@@ -105,12 +103,42 @@ html, body, #container { height: 100%; margin: 0; }
   box-shadow: 0 0 0 2px rgba(66,133,244,0.2);
 }
 
+.stop-row.intermediate { position: relative; }
+
+.stop-row.intermediate .stop-input {
+  padding-right: 36px; /* room for X button */
+}
+
+.stop-row.intermediate .delete-stop {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #5f6368;
+}
+.stop-row.intermediate .delete-stop:hover {
+  background: rgba(60,64,67,.08);
+}
+.stop-row.intermediate .delete-stop .material-icons {
+  font-size: 20px;
+}
+
 /* swap arrow (absolute inside .pill-stack) — horiz. flush‑right;
    vertical position is adjusted by JS for pixel‑perfect centring */
 #swap-btn {
   position: absolute;
-  right: 0;
-  top: 50%;                           /* JS will set correct top value */
+  right: 8px;
+  top: 0;                           /* JS will set correct top value */
   background: none;
   border: none;
   padding: 2px;
