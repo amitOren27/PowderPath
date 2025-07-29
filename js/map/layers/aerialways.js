@@ -14,17 +14,15 @@ export function addAerialways(map, { url, infoWindow, onBeforeOpen } = {}) {
   // Keep references to the dotted polylines so we can clean up later
   const dottedOverlays = [];
 
-  // Symbol used to create dots along the line
-  const DOT_COLOR = '#7E57C2';
-  const dotSymbol = {
-    path: google.maps.SymbolPath.CIRCLE,
-    scale: 2,
-    fillColor: DOT_COLOR,
-    fillOpacity: 1,
-    strokeColor: '#ffffff',
-    strokeOpacity: 1,
-    strokeWeight: 1          // outline thickness
-  };
+  const DOT_COLOR       = '#7E57C2'; // aerialway purple
+  const REPEAT_PX       = 14;        // spacing between mid-line dots
+  const MID_DOT_SCALE   = 2;       // mid-line dot size
+  const END_DOT_SCALE   = 3.2;       // start/end dot size
+  const OUTLINE_WEIGHT  = 1;      // white outline thickness (1–1.5 looks good)
+
+  // Single-symbol outlined dots (solid center + white stroke)
+  const midDot = makeOutlinedCircle(DOT_COLOR, MID_DOT_SCALE, OUTLINE_WEIGHT);
+  const endDot = makeOutlinedCircle(DOT_COLOR, END_DOT_SCALE, OUTLINE_WEIGHT);
 
   fetch(url)
     .then(r => r.json())
@@ -34,8 +32,8 @@ export function addAerialways(map, { url, infoWindow, onBeforeOpen } = {}) {
       // Hide the layer's own stroke
       layer.setStyle({
         strokeColor: '#7E57C2',
-        strokeOpacity: 0,
-        strokeWeight: 2
+        strokeOpacity: 1,
+        strokeWeight: 1
       });
 
       // Build a dotted polyline for each geometry part
@@ -48,11 +46,13 @@ export function addAerialways(map, { url, infoWindow, onBeforeOpen } = {}) {
             strokeOpacity: 0,         // hide the base stroke
             clickable: false,         // let Data layer receive clicks
             zIndex: 11,
-            icons: [{
-              icon: dotSymbol,
-              offset: '0',
-              repeat: '12px'          // spacing between dots
-            }]
+            icons: [
+              // 1) Mid-line repeated outlined dots
+              { icon: midDot, offset: '0', repeat: `${REPEAT_PX}px` },
+              // 2) Larger outlined dots at both endpoints (paint after mid-dots to sit on top)
+              { icon: endDot, offset: '0' },       // start
+              { icon: endDot, offset: '100%' }     // end
+            ]
           });
           dottedOverlays.push(pl);
         });
@@ -77,6 +77,18 @@ export function addAerialways(map, { url, infoWindow, onBeforeOpen } = {}) {
       dottedOverlays.forEach(pl => pl.setMap(null));
       dottedOverlays.length = 0;
     }
+  };
+}
+
+function makeOutlinedCircle(fill, scale, strokeWeight) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    scale,
+    fillColor: fill,
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeOpacity: 1,
+    strokeWeight
   };
 }
 

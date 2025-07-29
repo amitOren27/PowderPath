@@ -9,7 +9,7 @@ export function buildPisteInfo(feature) {
 /** Build info window HTML for an aerialway feature. */
 export function buildAerialwayInfo(feature) {
   const name = feature.getProperty('name') || 'Unnamed lift';
-  const type = feature.getProperty('aerialway') || 'Unknown type';
+  const type = feature.getProperty('type') || 'Unknown type';
   return `<strong>${escapeHTML(name)}</strong><br>Type: ${escapeHTML(type)}`;
 }
 

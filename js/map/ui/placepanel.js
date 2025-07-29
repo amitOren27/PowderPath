@@ -5,11 +5,15 @@ export function open(place) {
   root.innerHTML = render(place);
   root.classList.add('open');
   root.querySelector('.place-panel-close')?.addEventListener('click', close);
+  // Notify listeners (home/route pages can react)
+  window.dispatchEvent(new CustomEvent('placepanel:opened', { detail: { place } }));
 }
 
 export function close() {
   ensureRoot();
   root.classList.remove('open');
+  // Notify listeners (clear markers, etc.)
+  window.dispatchEvent(new CustomEvent('placepanel:closed'));
 }
 
 function ensureRoot() {

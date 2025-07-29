@@ -4,12 +4,14 @@ import { attachAutocomplete } from '../places/autocomplete.js';
 import { addPistes } from './layers/pistes.js';
 import { addAerialways } from './layers/aerialways.js';
 import * as placePanel from './ui/placepanel.js';
-import { wirePOIClicks } from './common/mapClicks.js';
+import { wirePOIClicks } from './common/mapclicks.js';
+import { makePin } from './common/mapclicks.js';
 import { fetchPlaceDetails } from './common/details.js';
+
 
 async function bootstrap() {
   // Load Google Maps (with Places for the search box)
-  await loadGoogle({ libraries: ['places'] });
+  await loadGoogle({ libraries: ['places', 'marker'] });
 
   // Create the map
   const map = new google.maps.Map(document.getElementById('map'), {
@@ -35,7 +37,7 @@ async function bootstrap() {
   // Search box + clear button
   const searchInput = document.getElementById('search-input');
   const clearBtn    = document.getElementById('clear-search');
-  let searchMarker = null;
+  let poiMarker = null;
 
   if (searchInput && clearBtn) {
     const toggleClear = () => {
@@ -65,10 +67,15 @@ async function bootstrap() {
 
         // Place / move a marker
         const loc = place.geometry.location;
-        if (!searchMarker) {
-          searchMarker = new google.maps.Marker({ map, position: loc });
+        const pin = makePin({ background: '#1a73e8' });
+        if (!poiMarker) {
+          poiMarker = new google.maps.marker.AdvancedMarkerElement({
+            map, position: loc, content: pin.element, zIndex: 20
+          });
         } else {
-          searchMarker.setPosition(loc);
+          poiMarker.position = loc;
+          poiMarker.content = pin.element;
+          poiMarker.map = map;
         }
 
         // Pan/zoom – if viewport present, fit; else center + zoom 17
@@ -94,13 +101,31 @@ async function bootstrap() {
     infoWindow,
     placePanel,
     onBlankMapClick: () => {
-      if (searchMarker) { searchMarker.setMap(null); searchMarker = null; }
+      if (poiMarker) { poiMarker.map = null; }
       if (searchInput) {
         searchInput.value = '';
         clearBtn.style.display = 'none';
       }
+    },
+    onPOIClick: (e) => {
+      // drop/update marker immediately at the clicked POI
+      const pin = makePin();
+      if (!poiMarker) {
+        poiMarker = new google.maps.marker.AdvancedMarkerElement({
+          map, position: e.latLng, content: pin.element, zIndex: 20
+        });
+      } else {
+        poiMarker.position = e.latLng;
+        poiMarker.content = pin.element;
+        poiMarker.map = map;
+      }
     }
   });
+
+  window.addEventListener('placepanel:closed', () => {
+    if (poiMarker) poiMarker.map = null;
+  });
+
 }
 
 bootstrap();
