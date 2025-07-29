@@ -4,17 +4,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>PowderPath Map</title>
 
-  <!-- Your CSS -->
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 
-  <!-- Google Maps JS (with Places Library) -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places"></script>
+  <link rel="stylesheet" href="index.css" />
+  <link rel="stylesheet" href="base.css" />
 
-  <!-- Your JS -->
-  <script src="script.js" defer></script>
+  <script type="module" src="./js/map/entry.js"></script>
+
+  <script type="module" src="./js/ui/leftnav.js"></script>
+
 </head>
 
 <body>
@@ -28,35 +29,6 @@
   <!-- Map -->
   <div id="map"></div>
   <div id="place-details" class="place-details hidden"></div>
-
-
-  <!-- Bottom Navigation Bar -->
-  <div class="bottom-nav">
-    <div class="nav-item">
-      <a href="index.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/map.png" alt="Map" />
-        <span>Map</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="route_planner.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/route.png" alt="Route Planner" />
-        <span>Route Planner</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="#">
-        <img src="https://img.icons8.com/ios-filled/50/000000/skiing.png" alt="Trails" />
-        <span>Trails</span>
-      </a>
-    </div>
-    <div class="nav-item">
-      <a href="weather.html">
-        <img src="https://img.icons8.com/ios-filled/50/000000/snow-storm.png" alt="Weather" />
-        <span>Weather</span>
-      </a>
-    </div>
-  </div>
 
 </body>
 

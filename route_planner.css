@@ -93,9 +93,10 @@ html, body, #container { height: 100%; margin: 0; }
 .stop-input {
   flex: 0.85;
   padding: 10px 14px;
-  font-size: 0.95rem;
-  border: 1px solid var(--pill-border);
-  border-radius: 24px;
+  font-size: 1.1rem;
+  border: 0.5px solid;
+  border-radius: 12px;
+  border-color: #242424;
   outline: none;
 }
 .stop-input:focus {

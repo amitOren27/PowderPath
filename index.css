@@ -1,0 +1,59 @@
+/* Reset margins and set full page size */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: Arial, sans-serif;
+}
+
+/* Map Container */
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* adjust to match bottom nav height */
+  left: 0;
+  right: 0;
+}
+
+/* Top Search Bar */
+.search-bar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 600px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 10px 15px;
+  font-size: 20px;
+  border: none;
+  outline: none;
+  border-radius: 0;
+}
+
+.search-bar button#clear-search {
+  padding: 0 15px;
+  height: 100%;
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+}
+
+
+

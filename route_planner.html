@@ -1,12 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>PowderPath – Route Planner</title>
+
   <link rel="stylesheet" href="route_planner.css" />
+  <link rel="stylesheet" href="base.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <script type="module" src="./js/route/entry.js"></script>
+
+  <script type="module" src="./js/ui/leftnav.js"></script>
 </head>
+
 <body>
 <div id="container">
   <!-- Collapsible side‑panel -->
@@ -24,11 +33,6 @@
                  type="text"
                  placeholder="Choose origin" />
         </div>
-
-<!--        &lt;!&ndash; Dotted spacer &ndash;&gt;-->
-<!--        <div class="stop-separator">-->
-<!--          <span class="material-icons">more_vert</span>-->
-<!--        </div>-->
 
         <!-- Destination -->
         <div class="stop-row destination" data-index="1">
@@ -51,19 +55,13 @@
         <span class="material-icons">add_circle_outline</span>
         <span id="add-stop-label">Add stop</span>
       </button>
+
     </form>
   </aside>
 
   <!-- Map canvas -->
   <main id="map" role="application" aria-label="Ski map"></main>
 </div>
-
-<!-- Google Maps JS (weekly channel) -->
-<script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=places&callback=initMap&v=weekly"
-        async defer></script>
-
-<!-- Page logic -->
-<script src="route_planner.js" defer></script>
 </body>
+
 </html>
