@@ -1,98 +1,86 @@
 
-import { routeSegment } from './api.js';
-
-let mapRef = null;
-let polylines = [];
+let map = null;
+let routePolyline = null;
+let fallbackPolylines = [];
 
 /**
  * Initialize with the Google Map instance created in entry.js.
- * Call this once during bootstrap.
+ * Called once during bootstrap.
  */
-export function init(map) {
-  mapRef = map;
+export function init(m) {
+  map = m;
 }
 
-/** Remove any existing polylines from the map. */
-export function clear() {
-  for (const pl of polylines) pl.setMap(null);
-  polylines = [];
+/** Remove any existing lines from the map. */
+export function clearRoute() {
+  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+  for (const pl of fallbackPolylines) if (pl) pl.setMap(null);
+  fallbackPolylines = [];
 }
 
 /**
- * Render the route as segments between consecutive *selected* stops.
- * Empty pills are ignored, order is preserved.
- *
- * @param {{stops: Array<{place?: google.maps.places.PlaceResult|null}>}} route
+ * Draw the solid route path.
  */
-export async function update(route) {
-  if (!mapRef) return;
+export function drawRoute(path) {
+  if (!map) return;
+  if (!path || !path.length) return;
 
-  // 1) Collect only the filled stops (have geometry), in visual order
-  const filled = route.stops
-    .map(s => s?.place?.geometry?.location)
-    .filter(Boolean)               // keep only defined locations
-    .map(loc => loc.toJSON());     // LatLngLiteral {lat, lng}
-
-  // Need at least two to draw anything
-  if (filled.length < 2) {
-    clear();
-    return;
-  }
-
-  // 2) Build segments between consecutive filled stops only
-  //    (Origin→Int1, Int1→Int3, Int3→Destination if Int2 is empty)
-  const segmentPromises = [];
-  for (let i = 0; i < filled.length - 1; i++) {
-    segmentPromises.push(routeSegment(filled[i], filled[i + 1]));
-  }
-
-  // Resolve in order; each result has { path: LatLngLiteral[] }
-  let results = [];
-  try {
-    results = await Promise.all(segmentPromises);
-  } catch (err) {
-    // If any segment fails, clear overlays for now.
-    clear();
-    return;
-  }
-
-  const segments = results
-    .map(r => Array.isArray(r?.path) ? r.path : [])
-    .filter(path => path.length >= 2);
-
-  // 3) Draw and fit
-  drawSegments(segments);
-  fitToSegments(segments);
-}
-
-/** Create one polyline per segment with a consistent style. */
-function drawSegments(segments) {
-  clear();
-
-  for (const path of segments) {
-    const pl = new google.maps.Polyline({
-      map: mapRef,
+  if (!routePolyline) {
+    routePolyline = new google.maps.Polyline({
+      map,
       path,
       strokeColor: '#1a73e8',
-      strokeOpacity: 1.0,
-      strokeWeight: 2,
-      geodesic: true,
-      zIndex: 10
+      strokeWeight: 4,
+      strokeOpacity: 0.9
     });
-    polylines.push(pl);
+  } else {
+    routePolyline.setPath(path);
+    routePolyline.setMap(map);
   }
 }
 
-/** Fit bounds to the union of all segment points, with padding. */
-function fitToSegments(segments) {
-  if (!segments.length) return;
+/**
+ * Draw dashed straight lines for legs with no route (fallbacks).
+ * Overwrites any previous dashed lines.
+ * @param {{start:{lat:number,lng:number}, end:{lat:number,lng:number}}[]} fallbacks
+ */
+export function drawFallbacks(fallbacks = []) {
+  for (const pl of fallbackPolylines) if (pl) pl.setMap(null);
+  fallbackPolylines = [];
+  if (!map || !fallbacks.length) return;
+
+  const dashSymbol = { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2, strokeColor: '#5f6368' };
+
+  for (const seg of fallbacks) {
+    const pl = new google.maps.Polyline({
+      map,
+      path: [seg.start, seg.end],
+      strokeOpacity: 0,
+      zIndex: 8,
+      icons: [{ icon: dashSymbol, offset: '0', repeat: '12px' }]
+    });
+    fallbackPolylines.push(pl);
+  }
+}
+
+/**
+ * Fit the map to the available geometry (route or fallbacks).
+ */
+export function fitToRoute(path = [], fallbacks = []) {
+  if (!map) return;
 
   const bounds = new google.maps.LatLngBounds();
-  for (const path of segments) {
+  let hasAny = false;
+
+  if (path?.length) {
+    hasAny = true;
     for (const p of path) bounds.extend(p);
+  } else if (fallbacks?.length) {
+    hasAny = true;
+    for (const f of fallbacks) { bounds.extend(f.start); bounds.extend(f.end); }
   }
 
-  // Adjust padding to your UI (bottom nav, sidebar)
-  const padding = { top: 20, left: 20, right: 20, bottom: 80 };
-  mapRef.fitBounds(bounds, padding);
+  if (hasAny) {
+    map.fitBounds(bounds, { top: 20, left: 20, right: 20, bottom: 80 });
+  }
 }

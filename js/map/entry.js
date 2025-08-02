@@ -4,9 +4,9 @@ import { attachAutocomplete } from '../places/autocomplete.js';
 import { addPistes } from './layers/pistes.js';
 import { addAerialways } from './layers/aerialways.js';
 import * as placePanel from './ui/placepanel.js';
-import { wirePOIClicks } from './common/mapclicks.js';
-import { makePin } from './common/mapclicks.js';
+import { wirePOIClicks, makePin } from './common/mapclicks.js';
 import { fetchPlaceDetails } from './common/details.js';
+import { PISTES_URL, AERIALWAYS_URL } from './config.js';
 
 
 async function bootstrap() {
@@ -28,9 +28,6 @@ async function bootstrap() {
   const closePanel = () => placePanel.close();
 
   // Add layers
-  const PISTES_URL     = 'https://pzacz4eagty6wkmi7d366e25ie0yvdmw.lambda-url.us-east-1.on.aws/';
-  const AERIALWAYS_URL = 'https://5ahe25yvc5nbe3aclzso6xebdq0fcxho.lambda-url.us-east-1.on.aws/';
-
   const pistes = addPistes(map, { url: PISTES_URL, infoWindow, onBeforeOpen: closePanel });
   const lifts  = addAerialways(map, { url: AERIALWAYS_URL, infoWindow, onBeforeOpen: closePanel });
 
