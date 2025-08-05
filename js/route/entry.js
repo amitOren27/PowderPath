@@ -93,11 +93,13 @@ async function bootstrap() {
       currentAbort = new AbortController();
       const { signal } = currentAbort;
 
+      // Keep pins synced with pills
+      markers.sync(getRoute());
+
       try {
         const filled = extractFilledStops(getRoute()); // [{lat,lng}, ... filled only, order kept]
         if (filled.length < 2) {
           draw.clearRoute();
-          markers.sync(getRoute());
           return;
         }
 
@@ -109,8 +111,6 @@ async function bootstrap() {
         draw.drawFallbacks(fallbacks);
         draw.fitToRoute(path, fallbacks);
 
-        // Keep pins synced with pills
-        markers.sync(getRoute());
       } catch (err) {
         if (err?.name === 'AbortError') return;
         console.error('[route] failed:', err);
