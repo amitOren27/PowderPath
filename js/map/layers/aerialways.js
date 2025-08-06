@@ -16,9 +16,9 @@ export function addAerialways(map, { url, infoWindow, onBeforeOpen } = {}) {
 
   const DOT_COLOR       = '#7E57C2'; // aerialway purple
   const REPEAT_PX       = 14;        // spacing between mid-line dots
-  const MID_DOT_SCALE   = 2;       // mid-line dot size
+  const MID_DOT_SCALE   = 2;         // mid-line dot size
   const END_DOT_SCALE   = 3.2;       // start/end dot size
-  const OUTLINE_WEIGHT  = 1;      // white outline thickness (1–1.5 looks good)
+  const OUTLINE_WEIGHT  = 1;         // white outline thickness (1–1.5 looks good)
 
   // Single-symbol outlined dots (solid center + white stroke)
   const midDot = makeOutlinedCircle(DOT_COLOR, MID_DOT_SCALE, OUTLINE_WEIGHT);
