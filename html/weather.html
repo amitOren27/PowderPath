@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Weather</title>
+  
+  <script src="../weather.js" defer></script>
+  <script type="module" src="../js/ui/leftnav.js"></script>
+
+  <link rel="stylesheet" href="../css/weather.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+</head>
+
+<body>
+
+  <h2>Weather Forecast</h2>
+  <div class="weather-links">
+    <button onclick="loadWeather('https://www.valthorens.com/en/meteo/', this)">Val Thorens</button>
+    <button onclick="loadWeather('https://www.meribel.net/en/weather/', this)">Méribel</button>
+    <button onclick="loadWeather('https://www.courchevel.com/en/meteo/', this)">Courchevel</button>
+  </div>
+  
+
+  <div class="iframe-container">
+    <iframe id="weather-iframe" src="https://www.valthorens.com/en/meteo/"></iframe>
+  </div>
+  
+</body>
+</html>

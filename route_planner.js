@@ -1,69 +1,138 @@
+/* global google */
 let map;
+let originAC, destinationAC;
+
+const acOptions = {
+  fields: ['place_id', 'geometry', 'name', 'formatted_address'],
+};
 
 function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 45.2970, lng: 6.5833 },
-    zoom: 14,
-    mapTypeId: "terrain"
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 45.297, lng: 6.58 },
+    zoom: 13,
+    mapId: 'POWDERPATH_BASE'
   });
-  window.initMap;
 
-  // Autocomplete for start & destination
-  const startInput = document.getElementById("start-location");
-  const destInput = document.getElementById("destination-location");
-  const inputColumn = document.querySelector(".input-column");
-
-  new google.maps.places.Autocomplete(startInput).bindTo("bounds", map);
-  new google.maps.places.Autocomplete(destInput).bindTo("bounds", map);
-
-  const addStopBtn = document.getElementById("add-stop-btn");
-
-  addStopBtn.addEventListener("click", () => {
-    const inputColumn = document.getElementById("inputs-container");
-    const destinationInput = document.getElementById("destination-location");
-
-    // Create a wrapper row for the new stop input and delete button
-    const stopRow = document.createElement("div");
-    stopRow.className = "input-row";
-
-    const stopInput = document.createElement("input");
-    stopInput.type = "text";
-    stopInput.className = "route-input";
-    stopInput.placeholder = "Stop";
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.innerText = "✖";
-    deleteBtn.className = "delete-stop-btn";
-    deleteBtn.onclick = () => stopRow.remove();
-
-    stopRow.appendChild(stopInput);
-    stopRow.appendChild(deleteBtn);
-
-    // Insert the new stop row right before the destination input row
-    const rows = inputColumn.querySelectorAll(".input-row");
-    const destinationRow = [...rows].find(row => row.contains(destinationInput));
-    inputColumn.insertBefore(stopRow, destinationRow);
-
-    new google.maps.places.Autocomplete(stopInput).bindTo("bounds", map);
-  });
+  initAutocomplete();
+  initUIEvents();
+  updateStopsUI(); // build initial separator + arrow position
 }
 
-window.addEventListener("load", () => {
-  if (typeof google === "object" && typeof google.maps === "object") {
-    initMap();
-  } else {
-    console.error("Google Maps failed to load.");
+function initAutocomplete() {
+  originAC = new google.maps.places.Autocomplete(
+    document.getElementById('origin-input'),
+    acOptions
+  );
+  destinationAC = new google.maps.places.Autocomplete(
+    document.getElementById('destination-input'),
+    acOptions
+  );
+}
+
+function attachAutocomplete(inputEl) {
+  new google.maps.places.Autocomplete(inputEl, acOptions);
+}
+
+function initUIEvents() {
+  document.getElementById('swap-btn').addEventListener('click', swapOriginDestination);
+  document.getElementById('add-stop-btn').addEventListener('click', addStopRow);
+  window.addEventListener('resize', updateStopsUI);
+}
+
+function swapOriginDestination() {
+  const a = document.getElementById('origin-input');
+  const b = document.getElementById('destination-input');
+  [a.value, b.value] = [b.value, a.value];
+  updateStopsUI(); // reposition arrow/separator
+}
+
+function addStopRow() {
+  const stack = document.querySelector('.pill-stack');
+  const destinationRow = stack.querySelector('.stop-row.destination');
+
+  const row = document.createElement('div');
+  row.className = 'stop-row intermediate';
+  row.innerHTML = `
+    <span class="stop-icon material-icons">stop_circle</span>
+    <input type="text" class="stop-input" placeholder="Intermediate stop" />
+    <button type="button" class="delete-stop" aria-label="Remove stop">
+      <span class="material-icons">close</span>
+    </button>
+  `;
+  stack.insertBefore(row, destinationRow);
+  attachAutocomplete(row.querySelector('.stop-input'));
+
+  row.querySelector('.delete-stop').addEventListener('click', () => {
+    row.remove();
+    updateAddStopLabel();
+    updateStopsUI();
+  });
+
+  updateAddStopLabel();
+  updateStopsUI();
+}
+
+function updateAddStopLabel() {
+  const label = document.getElementById('add-stop-label');
+  const count = document.querySelectorAll('.pill-stack .stop-row.intermediate').length;
+  label.textContent = count > 0 ? 'Add destination' : 'Add stop';
+}
+
+/**
+ * Build dotted separators between each adjacent pair of stops.
+ * Show/hide swap button. Position separators & arrow.
+ */
+function updateStopsUI() {
+  const stack = document.querySelector('.pill-stack');
+  const swapBtn = document.getElementById('swap-btn');
+
+  // Remove existing separators
+  stack.querySelectorAll('.stop-separator').forEach(el => el.remove());
+
+  const stops = Array.from(stack.querySelectorAll('.stop-row'));
+  const hasIntermediate = stack.querySelectorAll('.stop-row.intermediate').length > 0;
+
+  // Toggle swap button
+  swapBtn.style.display = hasIntermediate ? 'none' : 'block';
+
+  // Create separators for each adjacent pair
+  for (let i = 0; i < stops.length - 1; i++) {
+    const sep = document.createElement('div');
+    sep.className = 'stop-separator';
+    sep.innerHTML = '<span class="material-icons">more_vert</span>';
+    stack.appendChild(sep);
   }
-});
 
-// Get current path (e.g. "/weather.html")
-const currentPage = window.location.pathname.split('/').pop();
+  // Position separators & arrow after they exist in DOM
+  positionOverlayElements();
+}
 
-// Loop through nav links
-document.querySelectorAll('.bottom-nav a').forEach(link => {
-  const linkPage = link.getAttribute('href');
-  if (linkPage === currentPage) {
-    link.classList.add('active'); // mark as active
+function positionOverlayElements() {
+  const stack = document.querySelector('.pill-stack');
+  const stops = Array.from(stack.querySelectorAll('.stop-row'));
+  const separators = Array.from(stack.querySelectorAll('.stop-separator'));
+  const swapBtn = document.getElementById('swap-btn');
+
+  // Position each separator between its pair
+  for (let i = 0; i < separators.length; i++) {
+    const above = stops[i];
+    const below = stops[i + 1];
+    const sep = separators[i];
+    const aboveBottom = above.offsetTop + above.offsetHeight;
+    const belowTop = below.offsetTop;
+    const mid = (aboveBottom + belowTop) / 2;
+    sep.style.top = (mid - sep.offsetHeight / 2) + 'px';
   }
-});
 
+  // Position arrow only if visible (no intermediates)
+  if (swapBtn.style.display !== 'none' && stops.length === 2) {
+    const origin = stops[0];
+    const dest = stops[1];
+    const originBottom = origin.offsetTop + origin.offsetHeight;
+    const destTop = dest.offsetTop;
+    const mid = (originBottom + destTop) / 2;
+    swapBtn.style.top = (mid - swapBtn.offsetHeight / 2) + 'px';
+  }
+}
+
+window.initMap = initMap;
