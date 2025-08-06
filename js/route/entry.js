@@ -103,11 +103,11 @@ async function bootstrap() {
           return;
         }
 
-        const { path, fallbacks } = await fetchMultiLeg(filled, signal);
+        const { path, segments, fallbacks } = await fetchMultiLeg(filled, signal);
 
         // Clear then draw
         draw.clearRoute();
-        if (path.length) draw.drawRoute(path);
+        if (path.length) draw.drawSegments(segments);
         draw.drawFallbacks(fallbacks);
         draw.fitToRoute(path, fallbacks);
 

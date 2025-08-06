@@ -1,5 +1,6 @@
 
 import { buildPisteInfo } from '../ui/infowindow.js';
+import { getColorByDifficulty } from '../common/draw.js';
 
 /**
  * Adds pistes to the built-in map.data layer and
@@ -40,16 +41,4 @@ export function addPistes(map, { url, infoWindow, onBeforeOpen } = {}) {
       if (clickListener) google.maps.event.removeListener(clickListener);
     }
   };
-}
-
-function getColorByDifficulty(difficulty) {
-  switch (difficulty) {
-    case 'novice': return '#4CAF50';
-    case 'easy': return '#3399ff';
-    case 'intermediate': return '#ff0000';
-    case 'advanced': return '#000000';
-    case 'expert': return '#ff6600';
-    case 'freeride': return '#ffcc00';
-    default: return '#999999';
-  }
 }

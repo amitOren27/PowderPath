@@ -68,14 +68,17 @@ export async function fetchLeg(start, end, signal) {
       const geom = seg?.geometry;
       if (!geom || !geom.type || !geom.coordinates) continue;
 
+      const difficulty = seg?.difficulty ?? null;
+      const name       = seg?.name ?? null;
+
       if (geom.type === 'LineString') {
         const ll = geom.coordinates.map(toLatLng);
-        segments.push({ name: seg.name ?? null, path: ll });
+        segments.push({ name, difficulty, path: ll });
         flattened.push(...ll);
       } else if (geom.type === 'MultiLineString') {
         for (const part of geom.coordinates) {
           const ll = part.map(toLatLng);
-          segments.push({ name: seg.name ?? null, path: ll });
+          segments.push({ name, difficulty, path: ll });
           flattened.push(...ll);
         }
       }
@@ -96,6 +99,11 @@ export async function fetchLeg(start, end, signal) {
   }
 }
 
+/**
+ * Multi-leg sequencing: origin -> (stops...) -> destination
+ * Skips empty pills; preserves order.
+ * Returns merged path + merged segments + per-leg fallbacks.
+ */
 export async function fetchMultiLeg(stopsInOrder, signal) {
   if (!stopsInOrder || stopsInOrder.length < 2) {
     return { path: [], legs: [], fallbacks: [] };
@@ -103,6 +111,7 @@ export async function fetchMultiLeg(stopsInOrder, signal) {
 
   const legs = [];
   const fallbacks = [];
+  const allSegments = [];
 
   for (let i = 0; i < stopsInOrder.length - 1; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -111,10 +120,11 @@ export async function fetchMultiLeg(stopsInOrder, signal) {
     const leg = await fetchLeg(a, b, signal);
     legs.push(leg);
     if (leg.fallback) fallbacks.push(leg.fallback);
+    allSegments.push(...leg.segments);
   }
 
   const merged = [];
   for (const leg of legs) merged.push(...leg.path);
 
-  return { path: merged, legs, fallbacks };
+  return { path: merged, segments: allSegments, fallbacks };
 }
