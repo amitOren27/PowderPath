@@ -1,7 +1,12 @@
 
+import { getColorByDifficulty, makeOutlinedCircle, makePistePolyline, makeLiftPolyline } from '../map/common/draw.js';
+
 let map = null;
-let routePolyline = null;
-let fallbackPolylines = [];
+
+/** Overlays we manage */
+let pistePolylines = [];   // solid colored segments by difficulty
+let liftOverlays   = [];   // dotted purple segments (like aerialways)
+let fallbackPolylines = []; // dashed straight-line fallbacks
 
 /**
  * Initialize with the Google Map instance created in entry.js.
@@ -13,37 +18,43 @@ export function init(m) {
 
 /** Remove any existing lines from the map. */
 export function clearRoute() {
-  if (routePolyline) { routePolyline.setMap(null); routePolyline = null; }
+  for (const pl of pistePolylines) if (pl) pl.setMap(null);
+  for (const pl of liftOverlays)   if (pl) pl.setMap(null);
   for (const pl of fallbackPolylines) if (pl) pl.setMap(null);
+  pistePolylines = [];
+  liftOverlays = [];
   fallbackPolylines = [];
 }
 
 /**
- * Draw the solid route path.
+ * Draw segments:
+ *  - piste segments: solid colored line by difficulty
+ *  - lift segments: purple dotted, outlined dots (same style as home aerialways)
+ * @param {{name:string|null, difficulty:string|null, path: google.maps.LatLngLiteral[]}[]} segments
  */
-export function drawRoute(path) {
-  if (!map) return;
-  if (!path || !path.length) return;
+export function drawSegments(segments = []) {
+  // Clear previous
+  for (const pl of pistePolylines) if (pl) pl.setMap(null);
+  for (const pl of liftOverlays)   if (pl) pl.setMap(null);
+  pistePolylines = [];
+  liftOverlays = [];
 
-  if (!routePolyline) {
-    routePolyline = new google.maps.Polyline({
-      map,
-      path,
-      strokeColor: '#1a73e8',
-      strokeWeight: 4,
-      strokeOpacity: 0.9
-    });
-  } else {
-    routePolyline.setPath(path);
-    routePolyline.setMap(map);
+  if (!map || !segments.length) return;
+
+  for (const seg of segments) {
+    if (!Array.isArray(seg.path) || seg.path.length < 2) continue;
+
+    if (!seg.difficulty) {
+      // Dotted purple with white outline (outlined-dot style)
+      liftOverlays.push(makeLiftPolyline(map, seg.path));
+    } else {
+      // Solid color by difficulty
+      pistePolylines.push(makePistePolyline(map, seg.path, getColorByDifficulty(seg.difficulty)));
+    }
   }
 }
 
-/**
- * Draw dashed straight lines for legs with no route (fallbacks).
- * Overwrites any previous dashed lines.
- * @param {{start:{lat:number,lng:number}, end:{lat:number,lng:number}}[]} fallbacks
- */
+/** Draw dashed straight lines for legs with no route. */
 export function drawFallbacks(fallbacks = []) {
   for (const pl of fallbackPolylines) if (pl) pl.setMap(null);
   fallbackPolylines = [];
@@ -63,9 +74,7 @@ export function drawFallbacks(fallbacks = []) {
   }
 }
 
-/**
- * Fit the map to the available geometry (route or fallbacks).
- */
+/** Fit the map to available geometry (prefer full path, else fallbacks). */
 export function fitToRoute(path = [], fallbacks = []) {
   if (!map) return;
 
