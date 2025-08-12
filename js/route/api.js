@@ -6,6 +6,11 @@ function toLatLng([lon, lat]) {
   return { lat, lng: lon };
 }
 
+// GeoJSON [lat, lng] -> {lat, lng}
+function toLatLngLiteral([lat, lng]) {
+  return { lat: lat, lng: lng };
+}
+
 /** Read response once and return status + text + parsed JSON if possible. */
 async function readResponse(resp) {
   const text = await resp.text();
@@ -61,6 +66,9 @@ export async function fetchLeg(start, end, signal) {
       return { path: [], segments: [], fallback: { start, end } };
     }
 
+    const snapped_start = normalized.snapped_start;
+    const snapped_end   = normalized.snapped_end;
+
     const segments = [];
     const flattened = [];
 
@@ -89,7 +97,7 @@ export async function fetchLeg(start, end, signal) {
       return { path: [], segments: [], fallback: { start, end } };
     }
 
-    return { path: flattened, segments, fallback: null };
+    return { path: flattened, segments, fallback: null, snapped_start, snapped_end };
   } catch (err) {
     if (err?.name === 'AbortError') {
       return { path: [], segments: [], fallback: null };
@@ -126,5 +134,15 @@ export async function fetchMultiLeg(stopsInOrder, signal) {
   const merged = [];
   for (const leg of legs) merged.push(...leg.path);
 
-  return { path: merged, segments: allSegments, fallbacks };
+  // Build walking hints for every leg
+  const walking = legs.map((leg, i) => ({
+  // user stop i  -> leg.snapped_start
+    toSnap:   { origin: stopsInOrder[i], destination: toLatLngLiteral(leg.snapped_start) },
+    // leg.snapped_end -> user stop i+1
+    fromSnap: { origin: toLatLngLiteral(leg.snapped_end), destination: stopsInOrder[i + 1] }
+  }));
+
+  console.log(walking);
+
+  return { path: merged, segments: allSegments, fallbacks, walking };
 }

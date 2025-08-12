@@ -7,6 +7,8 @@ let map = null;
 let pistePolylines = [];   // solid colored segments by difficulty
 let liftOverlays   = [];   // dotted purple segments (like aerialways)
 let fallbackPolylines = []; // dashed straight-line fallbacks
+let walkingPolylines = [];  // dashed grey walking legs
+let walkingConnectorPolylines = [];
 
 /**
  * Initialize with the Google Map instance created in entry.js.
@@ -21,9 +23,13 @@ export function clearRoute() {
   for (const pl of pistePolylines) if (pl) pl.setMap(null);
   for (const pl of liftOverlays)   if (pl) pl.setMap(null);
   for (const pl of fallbackPolylines) if (pl) pl.setMap(null);
+  for (const pl of walkingPolylines) if (pl) pl.setMap(null);
+  for (const pl of walkingConnectorPolylines) if (pl) pl.setMap(null);
   pistePolylines = [];
   liftOverlays = [];
   fallbackPolylines = [];
+  walkingPolylines = [];
+  walkingConnectorPolylines = [];
 }
 
 /**
@@ -64,10 +70,64 @@ export function drawFallbacks(fallbacks = []) {
       map,
       path: [seg.start, seg.end],
       strokeOpacity: 0,
-      zIndex: 8,
+      zIndex: 11,
       icons: [{ icon: dashSymbol, offset: '0', repeat: '12px' }]
     });
     fallbackPolylines.push(pl);
+  }
+}
+
+export function drawWalkingPolylines(paths = []) {
+  if (!map) return;
+  const dash = {
+    icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2 },
+    offset: '0',
+    repeat: '10px'
+  };
+  for (const path of paths) {
+    if (!Array.isArray(path) || path.length < 2) continue;
+    const pl = new google.maps.Polyline({
+      map,
+      path,
+      strokeColor: '#666666',
+      strokeWeight: 1,
+      strokeOpacity: 0,
+      clickable: false,
+      zIndex: 11,
+      icons: [dash]
+    });
+    walkingPolylines.push(pl);
+  }
+}
+
+export function drawWalkingConnectors(paths = []) {
+  if (!map) return;
+  const dot = {
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: '#666666',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeOpacity: 1,
+      strokeWeight: 1.2,     // ring thickness
+      scale: 1.5           // dot radius (px). tweak with repeat below
+    },
+  offset: '0',
+  repeat: '5px'         // spacing between dots
+};
+  for (const path of paths) {
+    if (!Array.isArray(path) || path.length < 2) continue;
+    const pl = new google.maps.Polyline({
+      map,
+      path,
+      strokeColor: '#666666',
+      strokeWeight: 1,
+      strokeOpacity: 0,
+      clickable: false,
+      zIndex: 11,
+      icons: [dot]
+    });
+    walkingConnectorPolylines.push(pl);
   }
 }
 
