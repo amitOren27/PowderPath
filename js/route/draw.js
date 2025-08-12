@@ -34,10 +34,7 @@ export function clearRoute() {
  */
 export function drawSegments(segments = []) {
   // Clear previous
-  for (const pl of pistePolylines) if (pl) pl.setMap(null);
-  for (const pl of liftOverlays)   if (pl) pl.setMap(null);
-  pistePolylines = [];
-  liftOverlays = [];
+  clearRoute();
 
   if (!map || !segments.length) return;
 
