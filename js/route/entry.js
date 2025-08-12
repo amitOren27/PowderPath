@@ -7,10 +7,10 @@ import { getRoute } from './state.js';
 import * as draw from './draw.js';
 import * as markers from './markers.js';
 import { fetchMultiLeg } from './api.js';
+import { getWalkingPath, getWalkingConnectors } from './walking.js';
 
 import * as placePanel from '../map/ui/placepanel.js';
-import { wirePOIClicks } from '../map/common/mapclicks.js';
-import { makePin } from '../map/common/mapclicks.js';
+import { wirePOIClicks, makePin } from '../map/common/mapclicks.js';
 import { fetchPlaceDetails } from '../map/common/details.js';
 
 let currentAbort = null;
@@ -26,7 +26,7 @@ function extractFilledStops(route) {
 }
 
 async function bootstrap() {
-  await loadGoogle({ libraries: ['places', 'marker'] });
+  await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
 
   // Map init
   const map = new google.maps.Map(document.getElementById('map'), {
@@ -103,12 +103,42 @@ async function bootstrap() {
           return;
         }
 
-        const { path, segments, fallbacks } = await fetchMultiLeg(filled, signal);
+        const { path, segments, fallbacks, walking } = await fetchMultiLeg(filled, signal);
 
         // Clear then draw
         draw.clearRoute();
-        if (path.length) draw.drawSegments(segments);
+        draw.drawSegments(segments);
         draw.drawFallbacks(fallbacks);
+        const walkPromises = [];
+        const connectorPaths = [];
+        for (const hint of (walking || [])) {
+          if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
+            walkPromises.push(
+              getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
+                .then(path => {
+                  const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
+                  if (conns.length) connectorPaths.push(...conns);
+                  return path;
+                })
+                .catch(() => [])
+            );
+          }
+          if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
+            walkPromises.push(
+              getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
+                .then(path => {
+                  const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
+                  if (conns.length) connectorPaths.push(...conns);
+                  return path;
+                })
+                .catch(() => [])
+            );
+          }
+        }
+        const walkResults = await Promise.all(walkPromises);
+        const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
+        draw.drawWalkingPolylines(walkPaths);
+        draw.drawWalkingConnectors(connectorPaths);
         draw.fitToRoute(path, fallbacks);
 
       } catch (err) {

@@ -1,15 +1,15 @@
 
 let ready;
 
+export const GOOGLE_API_KEY = 'AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ';
+
 export function loadGoogle({ libraries = [] } = {}) {
   if (window.google?.maps) return Promise.resolve(window.google);
 
   if (!ready) {
     ready = new Promise((resolve, reject) => {
-      const apiKey = 'AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ';
-
       const params = new URLSearchParams({
-        key: apiKey,
+        key: GOOGLE_API_KEY,
         v: 'weekly',
         libraries: libraries.join(',')
       });
