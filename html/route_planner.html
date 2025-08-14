@@ -11,57 +11,58 @@
   <link rel="stylesheet" href="../css/base.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 
-  <script type="module" src="../js/route/entry.js"></script>
+  <!-- NEW: Amplify + config -->
+  <!-- הסר/י: <script src="https://unpkg.com/aws-amplify@.../aws-amplify.min.js"></script> -->
 
+  <!-- כן: טוענים את auth.js כמודול -->
+  <script type="module" src="../js/auth.js"></script>
+
+  <!-- existing modules -->
+  <script type="module" src="../js/route/entry.js"></script>
   <script type="module" src="../js/ui/leftnav.js"></script>
 </head>
 
+
 <body>
-<div id="container">
-  <!-- Collapsible side‑panel -->
-  <aside id="sidebar" class="collapsed" aria-label="Route planner panel">
+  <div id="container">
+    <!-- Collapsible side‑panel -->
+    <aside id="sidebar" class="collapsed" aria-label="Route planner panel">
 
-    <form id="route-form" autocomplete="off">
+      <form id="route-form" autocomplete="off">
 
-      <div class="pill-stack">
+        <div class="pill-stack">
 
-        <!-- Origin -->
-        <div class="stop-row origin" data-index="0">
-          <span class="stop-icon material-icons">trip_origin</span>
-          <input id="origin-input"
-                 class="stop-input"
-                 type="text"
-                 placeholder="Choose origin" />
+          <!-- Origin -->
+          <div class="stop-row origin" data-index="0">
+            <span class="stop-icon material-icons">trip_origin</span>
+            <input id="origin-input" class="stop-input" type="text" placeholder="Choose origin" />
+          </div>
+
+          <!-- Destination -->
+          <div class="stop-row destination" data-index="1">
+            <span class="stop-icon material-icons red">place</span>
+            <input id="destination-input" class="stop-input" type="text" placeholder="Choose destination" />
+          </div>
+
+          <!-- Swap arrow -->
+          <button id="swap-btn" type="button" title="Swap origin &amp; destination">
+            <span class="material-icons">swap_vert</span>
+          </button>
+
         </div>
 
-        <!-- Destination -->
-        <div class="stop-row destination" data-index="1">
-          <span class="stop-icon material-icons red">place</span>
-          <input id="destination-input"
-                 class="stop-input"
-                 type="text"
-                 placeholder="Choose destination" />
-        </div>
-
-        <!-- Swap arrow -->
-        <button id="swap-btn" type="button" title="Swap origin &amp; destination">
-          <span class="material-icons">swap_vert</span>
+        <!-- “Add stop / destination” row -->
+        <button id="add-stop-btn" type="button" class="add-stop-btn">
+          <span class="material-icons">add_circle_outline</span>
+          <span id="add-stop-label">Add stop</span>
         </button>
 
-      </div>
+      </form>
+    </aside>
 
-      <!-- “Add stop / destination” row -->
-      <button id="add-stop-btn" type="button" class="add-stop-btn">
-        <span class="material-icons">add_circle_outline</span>
-        <span id="add-stop-label">Add stop</span>
-      </button>
-
-    </form>
-  </aside>
-
-  <!-- Map canvas -->
-  <main id="map" role="application" aria-label="Ski map"></main>
-</div>
+    <!-- Map canvas -->
+    <main id="map" role="application" aria-label="Ski map"></main>
+  </div>
 </body>
 
 </html>

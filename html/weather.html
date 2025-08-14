@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Weather</title>
-  
-  <script src="../weather.js" defer></script>
-  <script type="module" src="../js/ui/leftnav.js"></script>
+
+  <!-- NEW: Amplify + config -->
+  <script src="https://unpkg.com/aws-amplify@6.x.x/dist/aws-amplify.min.js"></script>
+  <script src="../js/auth.js"></script>
+
+  <!-- כן: טוענים את auth.js כמודול -->
+  <script type="module" src="../js/auth.js"></script>
+
 
   <link rel="stylesheet" href="../css/weather.css" />
   <link rel="stylesheet" href="../css/base.css" />
 </head>
+
 
 <body>
 
@@ -21,11 +28,12 @@
     <button onclick="loadWeather('https://www.meribel.net/en/weather/', this)">Méribel</button>
     <button onclick="loadWeather('https://www.courchevel.com/en/meteo/', this)">Courchevel</button>
   </div>
-  
+
 
   <div class="iframe-container">
     <iframe id="weather-iframe" src="https://www.valthorens.com/en/meteo/"></iframe>
   </div>
-  
+
 </body>
+
 </html>
