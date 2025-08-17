@@ -13,6 +13,8 @@ import * as placePanel from '../map/ui/placepanel.js';
 import { wirePOIClicks, makePin } from '../map/common/mapclicks.js';
 import { fetchPlaceDetails } from '../map/common/details.js';
 
+import { requireLogin } from '../core/auth.js';
+
 let currentAbort = null;
 
 /** Build a list of LatLngLiteral, skipping empty pills (keeps order). */
@@ -26,6 +28,8 @@ function extractFilledStops(route) {
 }
 
 async function bootstrap() {
+  const userId = await requireLogin();
+
   await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
 
   // Map init

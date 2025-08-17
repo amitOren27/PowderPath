@@ -7,9 +7,11 @@ import * as placePanel from './ui/placepanel.js';
 import { wirePOIClicks, makePin } from './common/mapclicks.js';
 import { fetchPlaceDetails } from './common/details.js';
 import { PISTES_URL, AERIALWAYS_URL } from './config.js';
-
+import { requireLogin } from '../core/auth.js';
 
 async function bootstrap() {
+  const userId = await requireLogin();
+
   // Load Google Maps (with Places for the search box)
   await loadGoogle({ libraries: ['places', 'marker'] });
 
