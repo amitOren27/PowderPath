@@ -7,8 +7,9 @@ function toLatLng([lon, lat]) {
 }
 
 // GeoJSON [lat, lng] -> {lat, lng}
-function toLatLngLiteral([lat, lng]) {
-  return { lat: lat, lng: lng };
+function toLatLngLiteral(ll) {
+  if (!ll) return null;
+  return { lat: ll[0], lng: ll[1] };
 }
 
 /** Read response once and return status + text + parsed JSON if possible. */
@@ -36,7 +37,7 @@ function normalizeRoutePayload(payload) {
  * Request a single leg. Never throws: on any error or empty route,
  * returns a dashed-line fallback between start and end.
  */
-export async function fetchLeg(start, end, signal) {
+export async function fetchLeg(start, end, signal, allowed) {
   try {
     const resp = await fetch(ROUTE_URL, {
       method: 'POST',
@@ -44,7 +45,8 @@ export async function fetchLeg(start, end, signal) {
       body: JSON.stringify({
         // Lambda expects [lat, lon]
         start: [start.lat, start.lng],
-        end:   [end.lat,   end.lng]
+        end:   [end.lat,   end.lng],
+        ...(Array.isArray(allowed) && allowed.length ? { allowed } : {})
       }),
       signal
     });
@@ -112,10 +114,14 @@ export async function fetchLeg(start, end, signal) {
  * Skips empty pills; preserves order.
  * Returns merged path + merged segments + per-leg fallbacks.
  */
-export async function fetchMultiLeg(stopsInOrder, signal) {
+export async function fetchMultiLeg(stopsInOrder, signal, opts = {}) {
   if (!stopsInOrder || stopsInOrder.length < 2) {
     return { path: [], legs: [], fallbacks: [] };
   }
+
+  const allowed =
+    Array.isArray(opts.allowedDifficulties) && opts.allowedDifficulties.length
+      ? opts.allowedDifficulties : null;
 
   const legs = [];
   const fallbacks = [];
@@ -125,7 +131,7 @@ export async function fetchMultiLeg(stopsInOrder, signal) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     const a = stopsInOrder[i];
     const b = stopsInOrder[i + 1];
-    const leg = await fetchLeg(a, b, signal);
+    const leg = await fetchLeg(a, b, signal, allowed);
     legs.push(leg);
     if (leg.fallback) fallbacks.push(leg.fallback);
     allSegments.push(...leg.segments);
@@ -141,8 +147,6 @@ export async function fetchMultiLeg(stopsInOrder, signal) {
     // leg.snapped_end -> user stop i+1
     fromSnap: { origin: toLatLngLiteral(leg.snapped_end), destination: stopsInOrder[i + 1] }
   }));
-
-  console.log(walking);
 
   return { path: merged, segments: allSegments, fallbacks, walking };
 }

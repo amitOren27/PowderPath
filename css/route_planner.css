@@ -193,3 +193,62 @@ html, body, #container { height: 100%; margin: 0; }
   #sidebar.collapsed { transform: translateY(100%); }
   #collapse-btn      { display: inline; }
 }
+
+/* ───────────────────────────────────────────────
+   DIFFICULTY FILTERS
+──────────────────────────────────────────────── */
+
+/* --- Difficulties dropdown --- */
+.route-options {
+  margin-top: 10px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+#route-options .material-icons { font-family: "Material Icons"; }
+
+.dropdown { position: relative; display: block; }
+
+.dropdown-summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 8px;
+  background: #fff; cursor: pointer; user-select: none; font-size: 16px;
+}
+.dropdown[open] .dropdown-summary .dropdown-caret { transform: rotate(180deg); }
+
+.dropdown-caret { transition: transform 120ms ease; }
+
+.dropdown-panel {
+  margin-top: 6px; padding: 10px; border: 1px solid #dadce0; border-radius: 8px;
+  background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+.diff-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; border: 0; margin: 0; padding: 0;
+}
+.diff-item {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;
+}
+.diff-item input { margin: 0; }
+
+.color-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff; border: 1px solid rgba(0,0,0,.15);
+}
+
+/* Map difficulty -> color (matches getColorByDifficulty) */
+.color-dot[data-diff="novice"]        { background: #4CAF50; }
+.color-dot[data-diff="easy"]          { background: #3399ff; }
+.color-dot[data-diff="intermediate"]  { background: #ff0000; }
+.color-dot[data-diff="advanced"]      { background: #000000; }
+.color-dot[data-diff="expert"]        { background: #ff6600; }
+.color-dot[data-diff="freeride"]      { background: #ffcc00; }
+
+.dropdown-actions {
+  display: flex; justify-content: flex-end; margin-top: 8px;
+}
+.btn-link {
+  background: none; border: none; padding: 4px 6px; color: #1a73e8; cursor: pointer;
+  font: inherit; text-decoration: underline; border-radius: 4px;
+}
+.btn-link:hover { text-decoration: none; }

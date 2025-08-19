@@ -56,6 +56,55 @@
         <span id="add-stop-label">Add stop</span>
       </button>
 
+      <!-- Route options: difficulties dropdown -->
+      <section class="route-options">
+        <details id="diff-dropdown" class="dropdown">
+          <summary id="diff-summary" class="dropdown-summary" aria-controls="diff-panel" aria-expanded="false">
+            Difficulties
+            <span class="material-icons dropdown-caret" aria-hidden="true">expand_more</span>
+          </summary>
+          <div id="diff-panel" class="dropdown-panel">
+            <fieldset class="diff-grid" aria-label="Allowed piste difficulties">
+              <!-- Each checkbox defaults to checked -->
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="novice" checked>
+                <span class="color-dot" data-diff="novice"></span>
+                <span>Novice</span>
+              </label>
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="easy" checked>
+                <span class="color-dot" data-diff="easy"></span>
+                <span>Easy</span>
+              </label>
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="intermediate" checked>
+                <span class="color-dot" data-diff="intermediate"></span>
+                <span>Intermediate</span>
+              </label>
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="advanced" checked>
+                <span class="color-dot" data-diff="advanced"></span>
+                <span>Advanced</span>
+              </label>
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="expert" checked>
+                <span class="color-dot" data-diff="expert"></span>
+                <span>Expert</span>
+              </label>
+              <label class="diff-item">
+                <input type="checkbox" name="difficulty" value="freeride" checked>
+                <span class="color-dot" data-diff="freeride"></span>
+                <span>Freeride</span>
+              </label>
+            </fieldset>
+
+            <div class="dropdown-actions">
+              <button id="diff-reset" type="button" class="btn-link">Reset (All)</button>
+            </div>
+          </div>
+        </details>
+      </section>
+
     </form>
   </aside>
 
