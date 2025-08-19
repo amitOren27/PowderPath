@@ -1,8 +1,11 @@
 
-import { attachAutocomplete } from '../places/autocomplete.js';
-import { getRoute, addStopBeforeDestination, removeStopAt, swapEnds, setPlaceAt } from './state.js';
 import { emit } from '../core/events.js';
-
+import { attachAutocomplete } from '../places/autocomplete.js';
+import { getColorByDifficulty } from '../map/common/draw.js';
+import {
+  getRoute, addStopBeforeDestination, removeStopAt,
+  swapEnds, setPlaceAt, setAllowedDifficulties
+} from './state.js';
 
 let stackEl, swapBtn, addBtn;
 
@@ -37,6 +40,34 @@ export function initRouteUI() {
   });
 
   render(); // initial DOM sync
+
+  // Wire difficulties dropdown
+  const dropdown   = document.getElementById('diff-dropdown');
+  const panel      = document.getElementById('diff-panel');
+  const resetBtn   = document.getElementById('diff-reset');
+  const boxes      = panel?.querySelectorAll('input[type="checkbox"][name="difficulty"]') || [];
+
+  const apply = () => {
+    const allowed = [...boxes].filter(b => b.checked).map(b => b.value);
+    setAllowedDifficulties(allowed); // triggers route:changed
+  };
+  boxes.forEach(b => b.addEventListener('change', (e) => {
+    // Count after this toggle (the event has already flipped the checkbox)
+    const selected = [...boxes].filter(x => x.checked);
+    if (selected.length === 0) {
+      // Prevent deselecting the last remaining difficulty
+      e.target.checked = true;
+      return; // don't call apply()
+    }
+    apply();
+  }));
+  resetBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    boxes.forEach(b => b.checked = true);
+    apply();
+  });
+
+  apply(); // initial sync (all selected)
 }
 
 function formatPlaceText(place) {

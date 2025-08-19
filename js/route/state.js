@@ -8,6 +8,20 @@ const route = {
   ]
 };
 
+const ALL_DIFFICULTIES = ['novice','easy','intermediate','advanced','expert','freeride'];
+let allowedDifficulties = new Set(ALL_DIFFICULTIES);
+
+export function getAllowedDifficulties() {
+  return Array.from(allowedDifficulties);
+}
+
+export function setAllowedDifficulties(list) {
+  const next = new Set();
+  for (const d of list || []) if (ALL_DIFFICULTIES.includes(d)) next.add(d);
+  allowedDifficulties = next;
+  emit('route:changed');
+}
+
 function syncTypes() {
   if (route.stops.length < 2) return;
   route.stops[0].type = 'origin';

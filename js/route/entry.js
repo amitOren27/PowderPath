@@ -2,7 +2,7 @@
 import { loadGoogle } from '../maps/loader.js';
 import { on } from '../core/events.js';
 import { initRouteUI, render, positionOverlays } from './ui.js';
-import { getRoute } from './state.js';
+import { getRoute, getAllowedDifficulties } from './state.js';
 
 import * as draw from './draw.js';
 import * as markers from './markers.js';
@@ -28,7 +28,7 @@ function extractFilledStops(route) {
 }
 
 async function bootstrap() {
-  const userId = await requireLogin();
+  //const userId = await requireLogin();
 
   await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
 
@@ -107,7 +107,9 @@ async function bootstrap() {
           return;
         }
 
-        const { path, segments, fallbacks, walking } = await fetchMultiLeg(filled, signal);
+        const allowed = getAllowedDifficulties();
+        const { path, segments, fallbacks, walking } =
+          await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
 
         // Clear then draw
         draw.clearRoute();
