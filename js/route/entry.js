@@ -16,7 +16,7 @@ import { fetchPlaceDetails } from '../map/common/details.js';
 import { requireLogin } from '../core/auth.js';
 
 import { saveRecentLocation } from './recent_locations.js';
-
+import { fetchRecentLocations } from './recent_api.js';
 
 let currentAbort = null;
 
@@ -53,6 +53,13 @@ async function bootstrap() {
 
   // UI init
   initRouteUI();
+  try {
+    const recent = await fetchRecentLocations(5);
+    console.debug('[recent] loaded:', recent);
+    // בשלב הבא נעשה כאן רינדור UI תואם (כמו בגוגל מאפס)
+  } catch (err) {
+    console.error('[recent] load failed:', err);
+  }
 
   // Places plumbing (shared with home page)
   const infoWindow = new google.maps.InfoWindow();
@@ -89,17 +96,18 @@ async function bootstrap() {
     const loc = place.geometry.location;
     map.panTo(loc);
     map.setZoom(17);
-  });
-  const name = place.name || place.formatted_address || place.vicinity || 'Unnamed';
-  const lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
-  const lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
+    const name = place.name || place.formatted_address || place.vicinity || 'Unnamed';
+    const lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
+    const lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
 
-  try {
-    await saveRecentLocation({ userId, name, lat, lng });
-    console.debug('[recent] saved:', name, lat, lng);
-  } catch (err) {
-    console.error('[recent] save failed:', err);
-  }
+    try {
+      await saveRecentLocation({ userId, name, lat, lng });
+      const recent = await fetchRecentLocations(5);
+      console.debug('[recent] refreshed:', recent);
+    } catch (err) {
+      console.error('[recent] save failed:', err);
+    }
+  });
   // Re-render UI and redraw route whenever the store changes
   on('route:changed', async () => {
     render();
