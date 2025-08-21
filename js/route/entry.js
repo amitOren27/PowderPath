@@ -15,6 +15,9 @@ import { fetchPlaceDetails } from '../map/common/details.js';
 
 import { requireLogin } from '../core/auth.js';
 
+import { saveRecentLocation } from './recent_locations.js';
+import { fetchRecentLocations } from './recent_api.js';
+
 let currentAbort = null;
 
 /** Build a list of LatLngLiteral, skipping empty pills (keeps order). */
@@ -28,7 +31,7 @@ function extractFilledStops(route) {
 }
 
 async function bootstrap() {
-  //const userId = await requireLogin();
+  const userId = await requireLogin();
 
   await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
 
@@ -50,10 +53,16 @@ async function bootstrap() {
 
   // UI init
   initRouteUI();
+  
+  try {
+    const recent = await fetchRecentLocations(5);
+  } catch (err) {
+    console.error('[recent] load failed:', err);
+  }
 
   // Places plumbing (shared with home page)
   const infoWindow = new google.maps.InfoWindow();
-  const placesSvc  = new google.maps.places.PlacesService(map);
+  const placesSvc = new google.maps.places.PlacesService(map);
 
   wirePOIClicks({
     map,
@@ -86,73 +95,83 @@ async function bootstrap() {
     const loc = place.geometry.location;
     map.panTo(loc);
     map.setZoom(17);
-  });
+    const name = place.name || place.formatted_address || place.vicinity || 'Unnamed';
+    const lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
+    const lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
 
+    try {
+      await saveRecentLocation({ userId, name, lat, lng });
+      const recent = await fetchRecentLocations(5);
+    } catch (err) {
+      console.error('[recent] save failed:', err);
+    }
+  });
+  
   // Re-render UI and redraw route whenever the store changes
   on('route:changed', async () => {
-      render();
+    render();
 
-      // Cancel any in-flight routing
-      if (currentAbort) currentAbort.abort();
-      currentAbort = new AbortController();
-      const { signal } = currentAbort;
+    // Cancel any in-flight routing
+    if (currentAbort) currentAbort.abort();
+    currentAbort = new AbortController();
+    const { signal } = currentAbort;
 
-      // Keep pins synced with pills
-      markers.sync(getRoute());
+    // Keep pins synced with pills
+    markers.sync(getRoute());
 
-      try {
-        const filled = extractFilledStops(getRoute()); // [{lat,lng}, ... filled only, order kept]
-        if (filled.length < 2) {
-          draw.clearRoute();
-          return;
-        }
-
-        const allowed = getAllowedDifficulties();
-        const { path, segments, fallbacks, walking } =
-          await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
-
-        // Clear then draw
+    try {
+      const filled = extractFilledStops(getRoute()); // [{lat,lng}, ... filled only, order kept]
+      if (filled.length < 2) {
         draw.clearRoute();
-        draw.drawSegments(segments);
-        draw.drawFallbacks(fallbacks);
-        const walkPromises = [];
-        const connectorPaths = [];
-        for (const hint of (walking || [])) {
-          if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
-            walkPromises.push(
-              getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
-                .then(path => {
-                  const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
-                  if (conns.length) connectorPaths.push(...conns);
-                  return path;
-                })
-                .catch(() => [])
-            );
-          }
-          if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
-            walkPromises.push(
-              getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
-                .then(path => {
-                  const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
-                  if (conns.length) connectorPaths.push(...conns);
-                  return path;
-                })
-                .catch(() => [])
-            );
-          }
-        }
-        const walkResults = await Promise.all(walkPromises);
-        const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
-        draw.drawWalkingPolylines(walkPaths);
-        draw.drawWalkingConnectors(connectorPaths);
-        draw.fitToRoute(path, fallbacks);
-
-      } catch (err) {
-        if (err?.name === 'AbortError') return;
-        console.error('[route] failed:', err);
-        draw.clearRoute();
+        return;
       }
-    });
+
+      const allowed = getAllowedDifficulties();
+      const { path, segments, fallbacks, walking } =
+        await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
+
+      // Clear then draw
+      draw.clearRoute();
+      draw.drawSegments(segments);
+      draw.drawFallbacks(fallbacks);
+      const walkPromises = [];
+      const connectorPaths = [];
+      for (const hint of (walking || [])) {
+        if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
+          walkPromises.push(
+            getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
+              .then(path => {
+                const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
+                if (conns.length) connectorPaths.push(...conns);
+                return path;
+              })
+              .catch(() => [])
+          );
+        }
+        if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
+          walkPromises.push(
+            getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
+              .then(path => {
+                const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
+                if (conns.length) connectorPaths.push(...conns);
+                return path;
+              })
+              .catch(() => [])
+          );
+        }
+      }
+      const walkResults = await Promise.all(walkPromises);
+      const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
+      draw.drawWalkingPolylines(walkPaths);
+      draw.drawWalkingConnectors(connectorPaths);
+      draw.fitToRoute(path, fallbacks);
+
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      console.error('[route] failed:', err);
+      draw.clearRoute();
+    }
+  });
 
   // Keep overlays aligned in the side panel
   window.addEventListener('resize', positionOverlays);
