@@ -9,6 +9,7 @@ import { fetchPlaceDetails } from './common/details.js';
 import { PISTES_URL, AERIALWAYS_URL } from './config.js';
 import { requireLogin } from '../core/auth.js';
 
+
 async function bootstrap() {
   const userId = await requireLogin();
 
@@ -25,17 +26,17 @@ async function bootstrap() {
   });
 
   const infoWindow = new google.maps.InfoWindow();
-  const placesSvc  = new google.maps.places.PlacesService(map);
+  const placesSvc = new google.maps.places.PlacesService(map);
 
   const closePanel = () => placePanel.close();
 
   // Add layers
   const pistes = addPistes(map, { url: PISTES_URL, infoWindow, onBeforeOpen: closePanel });
-  const lifts  = addAerialways(map, { url: AERIALWAYS_URL, infoWindow, onBeforeOpen: closePanel });
+  const lifts = addAerialways(map, { url: AERIALWAYS_URL, infoWindow, onBeforeOpen: closePanel });
 
   // Search box + clear button
   const searchInput = document.getElementById('search-input');
-  const clearBtn    = document.getElementById('clear-search');
+  const clearBtn = document.getElementById('clear-search');
   let poiMarker = null;
 
   if (searchInput && clearBtn) {
