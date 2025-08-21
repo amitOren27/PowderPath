@@ -63,7 +63,19 @@ export function drawFallbacks(fallbacks = []) {
   fallbackPolylines = [];
   if (!map || !fallbacks.length) return;
 
-  const dashSymbol = { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2, strokeColor: '#5f6368' };
+  const dot = {
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: '#666666',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeOpacity: 1,
+      strokeWeight: 1.2,     // ring thickness
+      scale: 1.5             // dot radius (px). tweak with repeat below
+    },
+    offset: '0',
+    repeat: '5px'            // spacing between dots
+  };
 
   for (const seg of fallbacks) {
     const pl = new google.maps.Polyline({
@@ -71,7 +83,7 @@ export function drawFallbacks(fallbacks = []) {
       path: [seg.start, seg.end],
       strokeOpacity: 0,
       zIndex: 11,
-      icons: [{ icon: dashSymbol, offset: '0', repeat: '12px' }]
+      icons: [dot]
     });
     fallbackPolylines.push(pl);
   }
@@ -110,11 +122,11 @@ export function drawWalkingConnectors(paths = []) {
       strokeColor: '#ffffff',
       strokeOpacity: 1,
       strokeWeight: 1.2,     // ring thickness
-      scale: 1.5           // dot radius (px). tweak with repeat below
+      scale: 1.5             // dot radius (px). tweak with repeat below
     },
-  offset: '0',
-  repeat: '5px'         // spacing between dots
-};
+    offset: '0',
+    repeat: '5px'            // spacing between dots
+  };
   for (const path of paths) {
     if (!Array.isArray(path) || path.length < 2) continue;
     const pl = new google.maps.Polyline({

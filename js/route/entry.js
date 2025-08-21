@@ -2,7 +2,7 @@
 import { loadGoogle } from '../maps/loader.js';
 import { on } from '../core/events.js';
 import { initRouteUI, render, positionOverlays } from './ui.js';
-import { getRoute } from './state.js';
+import { getRoute, getAllowedDifficulties } from './state.js';
 
 import * as draw from './draw.js';
 import * as markers from './markers.js';
@@ -53,10 +53,9 @@ async function bootstrap() {
 
   // UI init
   initRouteUI();
+  
   try {
     const recent = await fetchRecentLocations(5);
-    console.debug('[recent] loaded:', recent);
-    // בשלב הבא נעשה כאן רינדור UI תואם (כמו בגוגל מאפס)
   } catch (err) {
     console.error('[recent] load failed:', err);
   }
@@ -103,11 +102,11 @@ async function bootstrap() {
     try {
       await saveRecentLocation({ userId, name, lat, lng });
       const recent = await fetchRecentLocations(5);
-      console.debug('[recent] refreshed:', recent);
     } catch (err) {
       console.error('[recent] save failed:', err);
     }
   });
+  
   // Re-render UI and redraw route whenever the store changes
   on('route:changed', async () => {
     render();
@@ -127,7 +126,9 @@ async function bootstrap() {
         return;
       }
 
-      const { path, segments, fallbacks, walking } = await fetchMultiLeg(filled, signal);
+      const allowed = getAllowedDifficulties();
+      const { path, segments, fallbacks, walking } =
+        await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
 
       // Clear then draw
       draw.clearRoute();
