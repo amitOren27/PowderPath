@@ -1,7 +1,9 @@
 
 import { loadGoogle } from '../maps/loader.js';
 import { on } from '../core/events.js';
-import { initRouteUI, render, positionOverlays } from './ui.js';
+import {
+  initRouteUI, render, positionOverlays, mountRecentUI, renderRecent
+} from './ui.js';
 import { getRoute, getAllowedDifficulties } from './state.js';
 
 import * as draw from './draw.js';
@@ -52,13 +54,62 @@ async function bootstrap() {
   markers.init(map);
 
   // UI init
+  // UI init
   initRouteUI();
-  
-  try {
-    const recent = await fetchRecentLocations(5);
-  } catch (err) {
-    console.error('[recent] load failed:', err);
+
+  // ---- RECENT PLACES: תמיד מתחת ל-Difficulties ----
+  const dropdown = document.getElementById('diff-dropdown');
+  const diffPanel = document.getElementById('diff-panel');
+
+  // ודא שקיים עוגן מחוץ ל-dropdown
+  let recentAnchor = document.getElementById('recent-root');
+  if (!recentAnchor) {
+    recentAnchor = document.createElement('div');
+    recentAnchor.id = 'recent-root';
+    recentAnchor.className = 'recent hidden';
+    // מציב את העוגן מייד אחרי ה-<details id="diff-dropdown">
+    (dropdown || document.getElementById('route-form') || document.body)
+      .insertAdjacentElement('afterend', recentAnchor);
   }
+
+  // מרכיבים את ה-UI של Recent על האלמנט עצמו (לא מחרוזת!)
+  try {
+    if (typeof mountRecentUI === 'function') {
+      mountRecentUI({ anchor: recentAnchor });
+    }
+  } catch (e) {
+    console.error('[recent] mount failed:', e);
+  }
+
+  // פונקציה שמוציאה כל .recent שהוזרקה בטעות לתוך ה-dropdown
+  const moveRecentOut = () => {
+    const inside = diffPanel?.querySelector('.recent');
+    if (inside && inside !== recentAnchor) {
+      recentAnchor.replaceWith(inside);
+      inside.id = 'recent-root';
+      recentAnchor = inside;
+    }
+    recentAnchor.classList.remove('hidden');
+  };
+
+  // הפעלה ראשונית + שמירה מפני הזרקות עתידיות
+  moveRecentOut();
+  if (diffPanel) {
+    new MutationObserver(moveRecentOut).observe(diffPanel, { childList: true, subtree: true });
+  }
+
+  // טעינת נתונים והצגה
+  try {
+    const recent = await fetchRecentLocations(10);
+    if (typeof renderRecent === 'function') {
+      renderRecent(recent);
+    }
+  } catch (e) {
+    console.error('[recent] load failed:', e);
+  }
+
+
+
 
   // Places plumbing (shared with home page)
   const infoWindow = new google.maps.InfoWindow();
@@ -101,12 +152,20 @@ async function bootstrap() {
 
     try {
       await saveRecentLocation({ userId, name, lat, lng });
-      const recent = await fetchRecentLocations(5);
+      const recent = await fetchRecentLocations(10);
     } catch (err) {
       console.error('[recent] save failed:', err);
     }
+    try {
+      await saveRecentLocation({ user_id: userId, name, lat, lng });
+      const recent = await fetchRecentLocations(10);
+      renderRecent(recent);
+    } catch (err) {
+      console.error('[recent] save/load recent failed:', err);
+    }
+
   });
-  
+
   // Re-render UI and redraw route whenever the store changes
   on('route:changed', async () => {
     render();
