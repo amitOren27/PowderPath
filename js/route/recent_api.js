@@ -11,5 +11,5 @@ export async function fetchRecentLocations(limit = 10) {
     throw new Error(`fetchRecentLocations failed: ${res.status} ${t}`);
   }
   const { items } = await res.json();
-  return items;
+  return items; // [{id,name,lat,lng,...}]
 }
