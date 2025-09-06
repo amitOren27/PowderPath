@@ -1,7 +1,6 @@
-
+// js/route/saved_api.js
 import { SAVED_ROUTES_FRONT_URL, SAVED_ROUTES_URL } from './config.js';
 import { requireLogin } from '../core/auth.js';
-
 
 export async function fetchSavedRoutes(limit = 20) {
   const u = await requireLogin();
@@ -18,16 +17,27 @@ export async function fetchSavedRoutes(limit = 20) {
     throw new Error(msg);
   }
   const data = await res.json().catch(() => ({}));
-  return Array.isArray(data?.items) ? data.items : [];
+  const items = Array.isArray(data?.items) ? data.items : [];
+  // תאימות לאחור: אם אין stops, נבנה [start,end]
+  return items.map(it => ({
+    ...it,
+    stops: Array.isArray(it.stops) && it.stops.length >= 2 ? it.stops : [it.start, it.end],
+  }));
 }
 
-export async function saveRoute({ start, end, route_name } = {}) {
+export async function saveRoute({ stops, route_name } = {}) {
   const u = await requireLogin();
   const user_id = (typeof u === 'string') ? u : (u?.userId ?? u?.sub ?? u?.id ?? u?.user_id);
 
-  if (!start || !end) throw new Error('start and end are required');
+  if (!Array.isArray(stops) || stops.length < 2) {
+    throw new Error('stops must include at least start and end');
+  }
 
-  const body = { user_id, start, end };
+  // תאימות לאחור: נשלח גם start/end בלחיצה — למקרה שהלמבדה הישנה רצה
+  const start = stops[0];
+  const end = stops[stops.length - 1];
+
+  const body = { user_id, stops, start, end };
   if (route_name) body.route_name = route_name;
 
   const res = await fetch(SAVED_ROUTES_URL, {
@@ -36,10 +46,12 @@ export async function saveRoute({ start, end, route_name } = {}) {
     body: JSON.stringify(body)
   });
 
-  const data = await res.json().catch(() => ({}));
+  let data = {};
+  try { data = await res.json(); } catch { }
+
   if (!res.ok || data?.ok === false) {
-    const msg = data?.error || 'Failed to save route';
+    const msg = data?.error || `Failed to save route (HTTP ${res.status})`;
     throw new Error(msg);
   }
-  return data;
+  return data; // {ok, id, exists, route_name}
 }
