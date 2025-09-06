@@ -2,11 +2,17 @@
 import { fetchSavedRoutes } from './saved_api.js';
 import { mountSavedUI, renderSaved, unmountSavedUI, isSavedMounted } from './saved_routes_ui.js';
 
+// ─── Global flags to avoid double init ───
+if (!window.__pp_flags) window.__pp_flags = {};
+
 let _state = {
   items: [],
   isLoading: false,
   lastError: null
 };
+
+// sequence counter to ignore stale async responses
+let _loadSeq = 0;
 
 function setLoading(on) {
   _state.isLoading = on;
@@ -30,26 +36,36 @@ function setLoading(on) {
 }
 
 async function loadItems(limit = 20) {
+  const mySeq = ++_loadSeq;    // mark this request as the newest
   setLoading(true);
   try {
     const items = await fetchSavedRoutes(limit);
+    // if a newer request started meanwhile, ignore this result
+    if (mySeq !== _loadSeq) return null;
+
     _state.items = items;
     _state.lastError = null;
     return items;
   } catch (err) {
+    if (mySeq !== _loadSeq) return null; // stale error, ignore
     _state.lastError = err;
     console.error('[saved] load failed:', err);
     return [];
   } finally {
-    setLoading(false);
+    if (mySeq === _loadSeq) setLoading(false);
   }
 }
 
 /** טעינה ראשונית: רק אם יש פריטים – נרכיב UI; אחרת לא נראה כלום */
 export async function initSavedRoutes({ limit = 20 } = {}) {
+  if (window.__pp_flags.savedRoutes_inited) return;
+  window.__pp_flags.savedRoutes_inited = true;
+
   const items = await loadItems(limit);
+  if (!items) return; // stale call ignored
+
   if (items.length > 0) {
-    mountSavedUI();
+    mountSavedUI();         // should be idempotent in UI layer
     renderSaved(items);
   } else {
     // ודא שלא נשאר סקשן ישן
@@ -60,6 +76,8 @@ export async function initSavedRoutes({ limit = 20 } = {}) {
 /** רענון לאחר שמירה: אם נוצר פריט ראשון – נרכיב; אם התרוקן – נסיר */
 export async function refreshSavedRoutes({ limit = 20 } = {}) {
   const items = await loadItems(limit);
+  if (!items) return; // stale call ignored
+
   if (items.length > 0) {
     if (!isSavedMounted()) mountSavedUI();
     renderSaved(items);

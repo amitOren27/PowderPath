@@ -1,4 +1,3 @@
-
 import { emit } from '../core/events.js';
 import { attachAutocomplete } from '../places/autocomplete.js';
 import { getColorByDifficulty } from '../map/common/draw.js';
@@ -14,9 +13,15 @@ export function initRouteUI() {
   swapBtn = document.getElementById('swap-btn');
   addBtn = document.getElementById('add-stop-btn');
 
-  // Static buttons
-  swapBtn?.addEventListener('click', onSwapClick);
-  addBtn?.addEventListener('click', addStopBeforeDestination);
+  // Static buttons (idempotent guards)
+  if (swapBtn && !swapBtn.__pp_bound) {
+    swapBtn.addEventListener('click', onSwapClick);
+    swapBtn.__pp_bound = true;
+  }
+  if (addBtn && !addBtn.__pp_bound) {
+    addBtn.addEventListener('click', addStopBeforeDestination);
+    addBtn.__pp_bound = true;
+  }
 
   // Attach AC to origin/destination once
   const originInput = document.getElementById('origin-input');
@@ -36,6 +41,23 @@ export function initRouteUI() {
       // destination index can change when stops are added; compute at click time
       setPlaceAt(getRoute().stops.length - 1, p);
       emit('route:placeSelected', { place: p });
+    }
+  });
+
+  // אחרי attachAutocomplete(originInput, {...})
+  originInput.addEventListener('input', () => {
+    if (originInput.value.trim() === '') {
+      // ניקוי ה-Place של ה-Origin
+      setPlaceAt(0, null); // יפעיל route:changed → מסלול/markers יתעדכנו
+    }
+  });
+
+  // אחרי attachAutocomplete(destInput, {...})
+  destInput.addEventListener('input', () => {
+    if (destInput.value.trim() === '') {
+      // אינדקס ה-Destination דינמי (האחרון במערך ה-stops)
+      const idx = Math.max(0, getRoute().stops.length - 1);
+      setPlaceAt(idx, null); // יפעיל route:changed
     }
   });
 
@@ -120,6 +142,13 @@ export function render() {
       }
     });
 
+    // ניקוי עצירת הביניים כאשר הטקסט נמחק
+    input.addEventListener('input', () => {
+      if (input.value.trim() === '') {
+        setPlaceAt(i, null); // יפעיל route:changed
+      }
+    });
+
     // hydrate from state if this stop already has a place
     const storedPlace = model.stops[i]?.place;
     if (storedPlace) {
@@ -177,16 +206,17 @@ let recentSection, recentListEl;
 export function mountRecentUI(opts = {}) {
   if (recentSection) return recentSection;
 
-  recentSection = document.createElement('section');
-  recentSection.id = 'recent-section';
-  recentSection.className = 'recent hidden';
-  recentSection.innerHTML = `
+  const created = document.createElement('section');
+  created.id = 'recent-section';
+  created.className = 'recent hidden';
+  created.innerHTML = `
     <div class="recent-header">
       <span class="material-icons">schedule</span>
       <span class="recent-title">Recent places</span>
     </div>
     <ul class="recent-list" role="listbox" aria-label="Recent places"></ul>
   `;
+  recentSection = created;
   recentListEl = recentSection.querySelector('.recent-list');
 
   const insertAfter = (ref, node) => ref.parentNode.insertBefore(node, ref.nextSibling);
@@ -194,12 +224,19 @@ export function mountRecentUI(opts = {}) {
   const resolveEl = (x) => typeof x === 'string' ? q(x) : x;
 
   const dropdown = document.getElementById('diff-dropdown'); // <details …>
-  const panel = document.getElementById('diff-panel');       // התוכן הפנימי של הלשונית
+  const panel = document.getElementById('diff-panel');    // התוכן הפנימי של הלשונית
 
   // 1) אם הועבר anchor מפורש או קיים #recent-root – נעדיף אותו
   let target = resolveEl(opts.anchor) || document.getElementById('recent-root');
   if (target && target.parentNode) {
-    insertAfter(target, recentSection);
+    // *** חשוב: מחליפים את העוגן בקומפוננטה כדי שלא יישאר DIV ריק עם מרווחים/מחלקות ***
+    target.replaceWith(recentSection);
+    // שומרים את הזהות/סלקטור: אם לעוגן היה id, נוריש אותו לקומפוננטה
+    if (target.id && target.id !== recentSection.id) {
+      recentSection.id = target.id; // בדרך כלל "recent-root"
+    }
+    // מוודאים שהקומפוננטה נשארת עם class="recent …" (ל־CSS)
+    if (!recentSection.classList.contains('recent')) recentSection.classList.add('recent');
   } else if (dropdown && dropdown.parentNode) {
     // 2) ברירת מחדל: להציב אחרי <details id="diff-dropdown"> (מחוץ לפאנל)
     insertAfter(dropdown, recentSection);
@@ -240,6 +277,7 @@ export function renderRecent(items = []) {
   enrichVisibleWithPlaces();
 
   // קליקים על פריטים ממלאים את הפיל הפנוי הבא
+  // קליקים על פריטים: ממלאים את השדה הפנוי הראשון; אם אין — מחליפים את ה-Destination
   recentListEl.querySelectorAll('.recent-item').forEach(el => {
     el.addEventListener('click', () => {
       const name = el.getAttribute('data-name') || 'Unnamed';
@@ -248,11 +286,26 @@ export function renderRecent(items = []) {
 
       const place = { name, geometry: { location: new google.maps.LatLng(lat, lng) } };
 
+      // 1) מציאת השדה הפנוי הראשון (Origin/ביניים/Destination).
+      //    אם אין פנוי → נבחר Destination (האחרון).
       const route = getRoute();
       let idx = route.stops.findIndex(s => !s.place);
-      if (idx === -1) idx = route.stops.length - 1;
+      if (idx === -1) idx = route.stops.length - 1; // אין פנויים → מחליפים את ה-Destination
 
+      // 2) עדכון ה-state (מפעיל route:changed → מסלול חדש + markers)
       setPlaceAt(idx, place);
+
+      // 3) סנכרון טקסט בשדה המתאים למשתמש
+      if (idx === 0) {
+        const o = document.getElementById('origin-input');
+        if (o) o.value = name;
+      } else if (idx === route.stops.length - 1) {
+        const d = document.getElementById('destination-input');
+        if (d) d.value = name;
+      }
+      // ביניים: ה-render ייצור/יעדכן את השורה וימלא מה-state (hydrate)
+
+      // 4) UX קיים: פאן/זום ושמירה ל-Recent
       emit('route:placeSelected', { place });
     });
   });

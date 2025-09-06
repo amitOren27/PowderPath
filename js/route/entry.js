@@ -1,10 +1,9 @@
-
 import { loadGoogle } from '../maps/loader.js';
 import { on } from '../core/events.js';
 import {
   initRouteUI, render, positionOverlays, mountRecentUI, renderRecent
 } from './ui.js';
-import { getRoute, getAllowedDifficulties } from './state.js';
+import { getRoute, getAllowedDifficulties, setPlaceAt, removeStopAt, addStopBeforeDestination } from './state.js';
 
 import * as draw from './draw.js';
 import * as markers from './markers.js';
@@ -23,11 +22,13 @@ import { fetchRecentLocations } from './recent_api.js';
 import { saveRoute } from './saved_api.js';
 import { initSavedRoutes, refreshSavedRoutes } from './saved_routes.js';
 
-
 let currentAbort = null;
 let _map = null;
 let _highlightPolylines = [];
 let _itSteps = [];
+
+// ───── Guards גלובליים למניעת אתחול/מאזינים כפולים ─────
+if (!window.__pp_flags) window.__pp_flags = {};
 
 /** Build a list of LatLngLiteral, skipping empty pills (keeps order). */
 function extractFilledStops(route) {
@@ -37,6 +38,24 @@ function extractFilledStops(route) {
     if (ll) out.push({ lat: ll.lat(), lng: ll.lng() });
   }
   return out;
+}
+
+function extractStopsForSave() {
+  const route = getRoute();
+  const stops = route?.stops || [];
+  const out = [];
+  for (let i = 0; i < stops.length; i++) {
+    const place = stops[i]?.place;
+    const ll = place?.geometry?.location;
+    if (!ll) continue;
+    const lat = (typeof ll.lat === 'function') ? ll.lat() : ll.lat;
+    const lng = (typeof ll.lng === 'function') ? ll.lng() : ll.lng;
+    const name =
+      place?.name ||
+      (i === 0 ? 'Start' : (i === stops.length - 1 ? 'End' : 'Stop'));
+    out.push({ name, lat, lng });
+  }
+  return out; // [{name,lat,lng}, ...] לפי סדר הפילים
 }
 
 function clearHighlight() {
@@ -85,6 +104,10 @@ function showHighlight(pathOrPaths = []) {
 }
 
 async function bootstrap() {
+  // מונע אתחול כפול של כל העמוד במקרה של טעינה כפולה
+  if (window.__pp_flags.route_bootstrapped) return;
+  window.__pp_flags.route_bootstrapped = true;
+
   const userId = await requireLogin();
 
   await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
@@ -107,37 +130,29 @@ async function bootstrap() {
   markers.init(map);
 
   // UI init
-  // UI init
   initRouteUI();
   const itUI = wireItineraryUI();
 
+  // Saved routes UI
   await initSavedRoutes();
+
+  // Bind "save" click (idempotent)
   const saveBtn = document.getElementById('save-route-btn');
   if (saveBtn) saveBtn.addEventListener('click', async () => {
     try {
-      const route = getRoute();
-      const stops = route?.stops || [];
-      const s0 = stops[0]?.place?.geometry?.location;
-      const s1 = stops[1]?.place?.geometry?.location;
-
-      if (!s0 || !s1) {
-        alert('Please set both Origin and Destination before saving.');
+      const stopsForSave = extractStopsForSave(); // ← כל העצירות (2+)
+      if (!Array.isArray(stopsForSave) || stopsForSave.length < 2) {
+        alert('Please set at least Origin and Destination before saving.');
         return;
       }
 
-      const start = {
-        name: stops[0]?.place?.name || 'Start',
-        lat: typeof s0.lat === 'function' ? s0.lat() : s0.lat,
-        lng: typeof s0.lng === 'function' ? s0.lng() : s0.lng
-      };
-      const end = {
-        name: stops[1]?.place?.name || 'End',
-        lat: typeof s1.lat === 'function' ? s1.lat() : s1.lat,
-        lng: typeof s1.lng === 'function' ? s1.lng() : s1.lng
-      };
-      const route_name = `${start.name} → ${end.name}`;
+      const startName = stopsForSave[0]?.name || 'Start';
+      const endName = stopsForSave[stopsForSave.length - 1]?.name || 'End';
+      const route_name = `${startName} → ${endName}`;
 
-      const res = await saveRoute({ start, end, route_name });
+      // שולחים stops מלא לשרת (ה־Lambda תנהל כפילויות לפי רצף הנקודות)
+      const res = await saveRoute({ stops: stopsForSave, route_name });
+
       if (!res?.ok) {
         console.error('[save-route] failed:', res);
         alert('Saving route failed.');
@@ -149,9 +164,13 @@ async function bootstrap() {
       alert('Network error while saving route.');
     }
   });
-  document.addEventListener('saved:select', onSavedRouteSelect);
 
 
+  // Guard for saved:select so it won't bind twice
+  if (!window.__pp_flags.saved_select_bound) {
+    document.addEventListener('saved:select', onSavedRouteSelect);
+    window.__pp_flags.saved_select_bound = true;
+  }
 
   // ---- RECENT PLACES: תמיד מתחת ל-Difficulties ----
   const dropdown = document.getElementById('diff-dropdown');
@@ -204,9 +223,6 @@ async function bootstrap() {
     console.error('[recent] load failed:', e);
   }
 
-
-
-
   // Places plumbing (shared with home page)
   const infoWindow = new google.maps.InfoWindow();
   const placesSvc = new google.maps.places.PlacesService(map);
@@ -236,111 +252,120 @@ async function bootstrap() {
   });
 
   // When any pill selects a place: pan/zoom like on the home map, then open the details panel
-  on('route:placeSelected', async (ev) => {
-    const place = ev.detail?.place;
-    if (!place || !place.geometry) return;
-    const loc = place.geometry.location;
-    map.panTo(loc);
-    map.setZoom(17);
-    const name = place.name || place.formatted_address || place.vicinity || 'Unnamed';
-    const lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
-    const lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
+  if (!window.__pp_flags.route_placeSelected_bound) {
+    on('route:placeSelected', async (ev) => {
+      const place = ev.detail?.place;
+      if (!place || !place.geometry) return;
+      const loc = place.geometry.location;
+      map.panTo(loc);
+      map.setZoom(17);
+      const name = place.name || place.formatted_address || place.vicinity || 'Unnamed';
+      const lat = (typeof loc.lat === 'function') ? loc.lat() : loc.lat;
+      const lng = (typeof loc.lng === 'function') ? loc.lng() : loc.lng;
 
-    try {
-      await saveRecentLocation({ user_id: userId, name, lat, lng });
-      const recent = await fetchRecentLocations(10);
-      renderRecent(recent);
-    } catch (err) {
-      console.error('[recent] save/load recent failed:', err);
-    }
-
-  });
+      try {
+        await saveRecentLocation({ user_id: userId, name, lat, lng });
+        const recent = await fetchRecentLocations(10);
+        renderRecent(recent);
+      } catch (err) {
+        console.error('[recent] save/load recent failed:', err);
+      }
+    });
+    window.__pp_flags.route_placeSelected_bound = true;
+  }
 
   // Re-render UI and redraw route whenever the store changes
-  on('route:changed', async () => {
-    render();
+  if (!window.__pp_flags.route_changed_bound) {
+    on('route:changed', async () => {
+      render();
 
-    // Cancel any in-flight routing
-    if (currentAbort) currentAbort.abort();
-    currentAbort = new AbortController();
-    const { signal } = currentAbort;
+      // Cancel any in-flight routing
+      if (currentAbort) currentAbort.abort();
+      currentAbort = new AbortController();
+      const { signal } = currentAbort;
 
-    // Keep pins synced with pills
-    markers.sync(getRoute());
+      // Keep pins synced with pills
+      markers.sync(getRoute());
 
-    try {
-      const filled = extractFilledStops(getRoute()); // [{lat,lng}, ... filled only, order kept]
-      if (filled.length < 2) {
+      try {
+        const filled = extractFilledStops(getRoute()); // [{lat,lng}, ... filled only, order kept]
+        if (filled.length < 2) {
+          draw.clearRoute();
+          clearItinerary();
+          clearHighlight();
+          return;
+        }
+
+        const allowed = getAllowedDifficulties();
+        const { path, segments, fallbacks, walking } =
+          await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
+
+        // Clear then draw
+        draw.clearRoute();
+        clearHighlight();
+        draw.drawSegments(segments);
+        draw.drawFallbacks(fallbacks);
+
+        // Walking connectors (async batch)
+        const walkPromises = [];
+        const connectorPaths = [];
+        for (const hint of (walking || [])) {
+          if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
+            walkPromises.push(
+              getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
+                .then(path => {
+                  const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
+                  if (conns.length) connectorPaths.push(...conns);
+                  return path;
+                })
+                .catch(() => [])
+            );
+          }
+          if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
+            walkPromises.push(
+              getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
+                .then(path => {
+                  const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
+                  if (conns.length) connectorPaths.push(...conns);
+                  return path;
+                })
+                .catch(() => [])
+            );
+          }
+        }
+        const walkResults = await Promise.all(walkPromises);
+        const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
+        draw.drawWalkingPolylines(walkPaths);
+        draw.drawWalkingConnectors(connectorPaths);
+
+        draw.fitToRoute(path, fallbacks);
+        updateItinerary({
+          segments,
+          walkPaths,
+          fallbacks,
+          totalPath: path
+        });
+
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        console.error('[route] failed:', err);
         draw.clearRoute();
         clearItinerary();
         clearHighlight();
-
-        return;
       }
+    });
+    window.__pp_flags.route_changed_bound = true;
+  }
 
-      const allowed = getAllowedDifficulties();
-      const { path, segments, fallbacks, walking } =
-        await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
-
-      // Clear then draw
-      draw.clearRoute();
-      clearHighlight();
-      draw.drawSegments(segments);
-      draw.drawFallbacks(fallbacks);
-      const walkPromises = [];
-      const connectorPaths = [];
-      for (const hint of (walking || [])) {
-        if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
-          walkPromises.push(
-            getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
-              .then(path => {
-                const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
-                if (conns.length) connectorPaths.push(...conns);
-                return path;
-              })
-              .catch(() => [])
-          );
-        }
-        if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
-          walkPromises.push(
-            getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
-              .then(path => {
-                const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
-                if (conns.length) connectorPaths.push(...conns);
-                return path;
-              })
-              .catch(() => [])
-          );
-        }
-      }
-      const walkResults = await Promise.all(walkPromises);
-      const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
-      draw.drawWalkingPolylines(walkPaths);
-      draw.drawWalkingConnectors(connectorPaths);
-      draw.fitToRoute(path, fallbacks);
-      updateItinerary({
-        segments,
-        walkPaths,
-        fallbacks,
-        totalPath: path
-      });
-
-
-    } catch (err) {
-      if (err?.name === 'AbortError') return;
-      console.error('[route] failed:', err);
-      draw.clearRoute();
-      clearItinerary();
-      clearHighlight();
-    }
-  });
-
-  // Keep overlays aligned in the side panel
-  window.addEventListener('resize', positionOverlays);
+  // Keep overlays aligned in the side panel (guarded)
+  if (!window.__pp_flags.resize_bound) {
+    window.addEventListener('resize', positionOverlays);
+    window.__pp_flags.resize_bound = true;
+  }
 }
 
-
 bootstrap();
+
 function km(meters) { return (meters / 1000).toFixed(2) + ' km'; }
 
 function lengthOfPath(path = []) {
@@ -385,8 +410,7 @@ function nearestVertexIndex(poly = [], point) {
   return bestIdx;
 }
 
-
-// נרמול שם למסך־מפתח: מוריד דיאקריטיים, יידוע התחלתי, המילה "piste", רווחים כפולים
+// נרמול שם למסך־מפתח
 function normalizeNameKey(raw) {
   if (!raw) return 'unnamed';
   let s = String(raw)
@@ -402,7 +426,6 @@ function normalizeNameKey(raw) {
 
   return s || 'unnamed';
 }
-
 
 // מזהה רכבל גם כשמגיע דרך fallbacks/תגיות שונות
 function isLift(seg = {}) {
@@ -430,9 +453,7 @@ function segPath(seg = {}) {
   }
   return [];
 }
-// מאחד סגמנטים רצופים ומסווג: ski אם יש קושי; אחרת lift (ברירת מחדל)
-// מאחד סגמנטים רצופים ומסווג: ski אם יש קושי; אחרת lift. שומר גם path מאוחד.
-// מאחד סגמנטים רצופים ומסווג: ski אם יש קושי; אחרת lift. שומר גם path מאוחד.
+
 // איחוד רצפים: ski אם יש קושי; אחרת lift. נרמול שם לאיחוד, "Unnamed" יורש את שם הקודם.
 function compactMixedSegments(allSegs = []) {
   const out = [];
@@ -484,16 +505,12 @@ function compactMixedSegments(allSegs = []) {
   return out;
 }
 
-
-
-
 // מאחד הליכות רצופות – שומר סכום מרחק וגם path מאוחד
 function compactWalks(walkPaths = []) {
   return (walkPaths || [])
     .filter(p => Array.isArray(p) && p.length > 1)
     .map(p => ({ type: 'walk', dist: lengthOfPath(p), path: p }));
 }
-
 
 function wireItineraryUI() {
   const panel = document.getElementById('itinerary');
@@ -513,51 +530,42 @@ function clearItinerary() {
   document.getElementById('itinerary')?.classList.add('collapsed');
 }
 
+// ───── Itinerary: מציגים רק מקטעים אמיתיים; fallbacks רק כהערה בסיכום ─────
 function updateItinerary({ segments = [], walkPaths = [], fallbacks = [], totalPath = [] } = {}) {
   const summaryEl = document.getElementById('it-summary');
   const stepsEl = document.getElementById('it-steps');
   if (!summaryEl || !stepsEl) return;
 
-  // מסלול כולל (לפי סדר) לשיוך פריטים למיקום הנכון
-  const routePts = Array.isArray(totalPath) ? totalPath : [];
+  // אם אין סגמנטים אמיתיים → הצג רק "No Route"
+  if (!Array.isArray(segments) || segments.length === 0) {
+    summaryEl.innerHTML = `<div><strong>No Route</strong></div>`;
+    stepsEl.innerHTML = '';
+    document.getElementById('itinerary')?.classList.remove('collapsed');
+    _itSteps = [];
+    return;
+  }
 
-  // סקי/רכבל (מאוחדים לפי שם/קושי) + גם fallbacks
-  const mixed = compactMixedSegments([...(segments || []), ...((fallbacks || []))]);
-  // הליכות – פריטים נפרדים (לא מאוחדים)
-  const walkItems = compactWalks(walkPaths);
+  // מציגים רק Ski/Lift ושומרים בדיוק את הסדר שמגיע מה-backend
+  const items = compactMixedSegments(segments); // שומר סדר קלט; מאחד רצפים זהים
 
-  // מוסיפים sortKey עמיד (לפי שני קצות המקטע) ואינדקס מקורי למיון יציב
-  let items = [...mixed, ...walkItems].map((it, idx) => ({
-    ...it,
-    sortKey: computeSortKey(it, routePts),
-    _idx: idx
-  }));
-
-  // מיון כרונולוגי לאורך המסלול
-  items.sort((a, b) => (a.sortKey === b.sortKey) ? (a._idx - b._idx) : (a.sortKey - b.sortKey));
-
-  // חישובי מרחקים לפי סוג
+  // חישובי מרחק (רק ski/lift)
   const skiDist = items.filter(s => s.type === 'ski').reduce((a, s) => a + (s.dist || 0), 0);
   const liftDist = items.filter(s => s.type === 'lift').reduce((a, s) => a + (s.dist || 0), 0);
-  const walkDist = items.filter(s => s.type === 'walk').reduce((a, s) => a + (s.dist || 0), 0);
-  const totalDist = skiDist + liftDist + walkDist;
+  const totalDist = skiDist + liftDist;
 
   summaryEl.innerHTML = `
     <div><strong>Total:</strong> ${km(totalDist)}</div>
     <div>
       Ski: ${km(skiDist)}
       ${liftDist ? ` • Lift: ${km(liftDist)}` : ''}
-      ${walkDist ? ` • Walk: ${km(walkDist)}` : ''}
     </div>
-    ${fallbacks?.length ? `<div>Includes ${fallbacks.length} fallback segment(s)</div>` : ''}
   `;
 
-  // בניית רשימת צעדים עם הנתיב של כל צעד
+  // בניית רשימת צעדים (ללא Walk)
   _itSteps = items;
-
   const rows = _itSteps.map(({ type, name, diff, dist }, idx) => {
-    const icon = (type === 'lift') ? 'tram' : (type === 'ski' ? 'downhill_skiing' : 'directions_walk');
-    const label = name || (type === 'lift' ? 'Lift' : type === 'ski' ? 'Piste' : 'Walk connector');
+    const icon = (type === 'lift') ? 'tram' : 'downhill_skiing';
+    const label = name || (type === 'lift' ? 'Lift' : 'Piste');
     const extra = (type === 'ski' && diff) ? ` · <span style="color:#5f6368">${diff}</span>` : '';
     return `
       <li data-step-idx="${idx}">
@@ -571,7 +579,7 @@ function updateItinerary({ segments = [], walkPaths = [], fallbacks = [], totalP
   stepsEl.innerHTML = rows;
   document.getElementById('itinerary')?.classList.remove('collapsed');
 
-  // קליק על שורה → הדגשת המקטע המתאים (בלי לחבר הליכות שונות)
+  // קליק על שורה → הדגשת המקטע המתאים
   stepsEl.querySelectorAll('li').forEach(li => {
     li.addEventListener('click', () => {
       stepsEl.querySelectorAll('li.active').forEach(x => x.classList.remove('active'));
@@ -624,72 +632,42 @@ async function onSaveRouteClick() {
     alert('Network error while saving route.');
   }
 }
+
 async function onSavedRouteSelect(ev) {
   const item = ev?.detail;
-  if (!item?.start || !item?.end) return;
+  if (!item) return;
 
   try {
-    // נתוני קלט לרואטר
-    const filled = [
-      { lat: Number(item.start.lat), lng: Number(item.start.lng) },
-      { lat: Number(item.end.lat), lng: Number(item.end.lng) }
-    ];
+    // מעדיפים stops מה־DB; נופלים ל-start/end אם צריך
+    const arr = (Array.isArray(item.stops) && item.stops.length >= 2)
+      ? item.stops
+      : [item.start, item.end].filter(Boolean);
 
-    // קוראים לרואטר בדיוק כמו ב-route:changed (עם אותם כללים)
-    const allowed = getAllowedDifficulties();
-    const { path, segments, fallbacks, walking } =
-      await fetchMultiLeg(filled, undefined, { allowedDifficulties: allowed });
+    if (!arr || arr.length < 2) return;
 
-    // ניקוי ציור קודם
-    draw.clearRoute();
+    // התאמת מספר העצירות במודל: להגדיל/להקטין עד שאורכו כמו arr
+    while (getRoute().stops.length < arr.length) addStopBeforeDestination();
+    while (getRoute().stops.length > arr.length) removeStopAt(1); // מסירים תמיד באמצע
 
-    // ציור הסגמנטים
-    draw.drawSegments(segments);
-    draw.drawFallbacks(fallbacks);
+    // מילוי כל העצירות במודל (מייצרים Place כמו באוטוקומפליט/Recent)
+    arr.forEach((s, i) => {
+      const name = s?.name || (i === 0 ? 'Start' : i === arr.length - 1 ? 'End' : `Stop ${i}`);
+      const lat = Number(s?.lat), lng = Number(s?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const place = { name, geometry: { location: new google.maps.LatLng(lat, lng) } };
+      setPlaceAt(i, place);
+    });
 
-    // חישובי הליכה (אם קיימים)
-    const walkPromises = [];
-    const connectorPaths = [];
-    for (const hint of (walking || [])) {
-      if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
-        walkPromises.push(
-          getWalkingPath(hint.toSnap.origin, hint.toSnap.destination)
-            .then(p => {
-              const c = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, p);
-              if (c.length) connectorPaths.push(...c); return p;
-            })
-            .catch(() => [])
-        );
-      }
-      if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
-        walkPromises.push(
-          getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination)
-            .then(p => {
-              const c = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, p);
-              if (c.length) connectorPaths.push(...c); return p;
-            })
-            .catch(() => [])
-        );
-      }
-    }
-    const walkResults = await Promise.all(walkPromises);
-    const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
-    draw.drawWalkingPolylines(walkPaths);
-    draw.drawWalkingConnectors(connectorPaths);
-
-    // התאמת תצוגה למסלול + פירוט
-    draw.fitToRoute(path, fallbacks);
-    updateItinerary({ segments, walkPaths, fallbacks, totalPath: path });
-
-    // UX קטן: למלא את שני השדות בטופס כדי שהמשתמש יראה מה נבחר
+    // עדכון טקסט בתיבות ההתחלה/סוף (האמצע נבנה אוטומטית ברנדר)
     const o = document.getElementById('origin-input');
     const d = document.getElementById('destination-input');
-    if (o) o.value = item.start.name || `${item.start.lat}, ${item.start.lng}`;
-    if (d) d.value = item.end.name || `${item.end.lat}, ${item.end.lng}`;
+    if (o) o.value = arr[0]?.name || `${arr[0]?.lat}, ${arr[0]?.lng}`;
+    if (d) d.value = arr[arr.length - 1]?.name || `${arr[arr.length - 1]?.lat}, ${arr[arr.length - 1]?.lng}`;
+
+    // הערה: setPlaceAt מפעיל route:changed → שמנקה/מצייר מסלול ומרענן מארקרים ואיטינררי.
 
   } catch (err) {
     console.error('[saved:select] failed:', err);
-    draw.clearRoute();
-    // אם יש אצלך clearItinerary() – אפשר לקרוא גם לו
   }
 }
+

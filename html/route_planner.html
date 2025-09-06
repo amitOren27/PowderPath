@@ -7,110 +7,127 @@
 
   <title>PowderPath – Route Planner</title>
 
+  <!-- Styles -->
   <link rel="stylesheet" href="../css/route_planner.css" />
   <link rel="stylesheet" href="../css/base.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 
+  <!-- App modules (one-time, no duplicates) -->
   <script type="module" src="../js/route/entry.js"></script>
-
   <script type="module" src="../js/ui/leftnav.js"></script>
+
+  <!-- Google Maps API: load ONCE, without callback (init happens inside entry.js) -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNW_jNQe4wEgD8R_4XIMC2Ff95psP2MLQ&libraries=marker,places"
+    async defer></script>
 </head>
 
 <body>
-<div id="container">
-  <!-- Collapsible side‑panel -->
-  <aside id="sidebar" class="collapsed" aria-label="Route planner panel">
+  <div id="container">
+    <!-- Collapsible side-panel -->
+    <aside id="sidebar" class="collapsed" aria-label="Route planner panel">
+      <form id="route-form" autocomplete="off">
+        <div class="pill-stack">
 
-    <form id="route-form" autocomplete="off">
-
-      <div class="pill-stack">
-
-        <!-- Origin -->
-        <div class="stop-row origin" data-index="0">
-          <span class="stop-icon material-icons">trip_origin</span>
-          <input id="origin-input"
-                 class="stop-input"
-                 type="text"
-                 placeholder="Choose origin" />
-        </div>
-
-        <!-- Destination -->
-        <div class="stop-row destination" data-index="1">
-          <span class="stop-icon material-icons red">place</span>
-          <input id="destination-input"
-                 class="stop-input"
-                 type="text"
-                 placeholder="Choose destination" />
-        </div>
-
-        <!-- Swap arrow -->
-        <button id="swap-btn" type="button" title="Swap origin &amp; destination">
-          <span class="material-icons">swap_vert</span>
-        </button>
-
-      </div>
-
-      <!-- “Add stop / destination” row -->
-      <button id="add-stop-btn" type="button" class="add-stop-btn">
-        <span class="material-icons">add_circle_outline</span>
-        <span id="add-stop-label">Add stop</span>
-      </button>
-
-      <!-- Route options: difficulties dropdown -->
-      <section class="route-options">
-        <details id="diff-dropdown" class="dropdown">
-          <summary id="diff-summary" class="dropdown-summary" aria-controls="diff-panel" aria-expanded="false">
-            Difficulties
-            <span class="material-icons dropdown-caret" aria-hidden="true">expand_more</span>
-          </summary>
-          <div id="diff-panel" class="dropdown-panel">
-            <fieldset class="diff-grid" aria-label="Allowed piste difficulties">
-              <!-- Each checkbox defaults to checked -->
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="novice" checked>
-                <span class="color-dot" data-diff="novice"></span>
-                <span>Novice</span>
-              </label>
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="easy" checked>
-                <span class="color-dot" data-diff="easy"></span>
-                <span>Easy</span>
-              </label>
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="intermediate" checked>
-                <span class="color-dot" data-diff="intermediate"></span>
-                <span>Intermediate</span>
-              </label>
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="advanced" checked>
-                <span class="color-dot" data-diff="advanced"></span>
-                <span>Advanced</span>
-              </label>
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="expert" checked>
-                <span class="color-dot" data-diff="expert"></span>
-                <span>Expert</span>
-              </label>
-              <label class="diff-item">
-                <input type="checkbox" name="difficulty" value="freeride" checked>
-                <span class="color-dot" data-diff="freeride"></span>
-                <span>Freeride</span>
-              </label>
-            </fieldset>
-
-            <div class="dropdown-actions">
-              <button id="diff-reset" type="button" class="btn-link">Reset (All)</button>
-            </div>
+          <!-- Origin -->
+          <div class="stop-row origin" data-index="0">
+            <span class="stop-icon material-icons">trip_origin</span>
+            <input id="origin-input" class="stop-input" type="text" placeholder="Choose origin" />
           </div>
-        </details>
-      </section>
 
-    </form>
-  </aside>
+          <!-- Destination -->
+          <div class="stop-row destination" data-index="1">
+            <span class="stop-icon material-icons red">place</span>
+            <input id="destination-input" class="stop-input" type="text" placeholder="Choose destination" />
+          </div>
 
-  <!-- Map canvas -->
-  <main id="map" role="application" aria-label="Ski map"></main>
-</div>
+          <!-- Swap arrow -->
+          <button id="swap-btn" type="button" title="Swap origin &amp; destination">
+            <span class="material-icons">swap_vert</span>
+          </button>
+        </div>
+
+        <!-- Actions: Add stop + Save route -->
+        <div class="actions-row">
+          <button id="add-stop-btn" type="button" class="add-stop-btn">
+            <span class="material-icons">add_circle_outline</span>
+            <span id="add-stop-label">Add stop</span>
+          </button>
+          <button id="save-route-btn" type="button" aria-label="Save route" title="Save route">
+            <span class="material-icons">favorite_border</span>
+          </button>
+        </div>
+
+        <!-- Route options: difficulties dropdown -->
+        <section class="route-options">
+          <details id="diff-dropdown" class="dropdown">
+            <summary id="diff-summary" class="dropdown-summary" aria-controls="diff-panel" aria-expanded="false">
+              Difficulties
+              <span class="material-icons dropdown-caret" aria-hidden="true">expand_more</span>
+            </summary>
+            <div id="diff-panel" class="dropdown-panel">
+              <fieldset class="diff-grid" aria-label="Allowed piste difficulties">
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="novice" checked>
+                  <span class="color-dot" data-diff="novice"></span>
+                  <span>Novice</span>
+                </label>
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="easy" checked>
+                  <span class="color-dot" data-diff="easy"></span>
+                  <span>Easy</span>
+                </label>
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="intermediate" checked>
+                  <span class="color-dot" data-diff="intermediate"></span>
+                  <span>Intermediate</span>
+                </label>
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="advanced" checked>
+                  <span class="color-dot" data-diff="advanced"></span>
+                  <span>Advanced</span>
+                </label>
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="expert" checked>
+                  <span class="color-dot" data-diff="expert"></span>
+                  <span>Expert</span>
+                </label>
+                <label class="diff-item">
+                  <input type="checkbox" name="difficulty" value="freeride" checked>
+                  <span class="color-dot" data-diff="freeride"></span>
+                  <span>Freeride</span>
+                </label>
+              </fieldset>
+
+              <div class="dropdown-actions">
+                <button id="diff-reset" type="button" class="btn-link">Reset (All)</button>
+              </div>
+            </div>
+          </details>
+        </section>
+      </form>
+    </aside>
+
+    <!-- Map canvas -->
+    <main id="map" role="application" aria-label="Ski map"></main>
+
+    <!-- Itinerary toggle button (opens the right sheet) -->
+    <button id="itinerary-toggle" class="it-toggle" aria-expanded="false" title="Show route details">
+      <span class="material-icons">list</span>
+    </button>
+
+    <!-- Right-side itinerary panel -->
+    <aside id="itinerary" class="it-panel collapsed" aria-label="Route details">
+      <div class="it-header">
+        <div class="it-title">Route details</div>
+        <button id="it-close" class="it-close" title="Close">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div id="it-summary" class="it-summary"></div>
+      <ol id="it-steps" class="it-steps"></ol>
+    </aside>
+  </div>
 </body>
 
 </html>
