@@ -175,7 +175,7 @@ body,
 .add-stop-btn {
   display: flex;
   align-items: center;
-  gap: .75rem;
+  gap: .60rem;
   background: none;
   border: none;
   padding: 15px 10px 0;
@@ -189,6 +189,10 @@ body,
   color: #202124;
 }
 
+.add-stop-btn .add-stop-label {
+  margin-top: 2px;
+}
+
 .add-stop-btn:hover,
 .add-stop-btn:hover .material-icons {
   color: #1a73e8;
@@ -199,7 +203,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 8px 0;
+  padding: 10px 6px 0px 0px;
 }
 
 /* לב – שמירת מסלול */
@@ -276,6 +280,7 @@ body,
 .dropdown {
   position: relative;
   display: block;
+  margin-left: 10px;
 }
 
 .dropdown-summary {
@@ -389,8 +394,8 @@ body,
 ──────────────────────────────────────────────── */
 .it-toggle {
   position: absolute;
-  right: 16px;
-  top: 16px;
+  right: 8px;
+  top: 78px;
   z-index: 1000;
   width: 44px;
   height: 44px;
@@ -411,7 +416,7 @@ body,
 
 .it-panel {
   position: absolute;
-  right: 12px;
+  right: 6px;
   top: 72px;
   bottom: 12px;
   width: 360px;
@@ -542,7 +547,8 @@ body,
    RECENT PLACES
 ──────────────────────────────────────────────── */
 #recent-root.recent {
-  margin-top: 8px;
+  margin-top: 20px;
+  padding-left: 10px;
 }
 
 .recent ul,
@@ -557,7 +563,7 @@ body,
   margin: 0;
   padding: 0;
   list-style: none;
-  max-height: 260px;
+  max-height: 195px;
   overflow-y: auto;
   overflow-x: hidden;
   -ms-overflow-style: none;
@@ -628,9 +634,25 @@ body,
   justify-self: end;
 }
 
+.recent .material-icons {
+  vertical-align: middle;
+}
+
+.recent .recent-title {
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
 /* ───────────────────────────────────────────────
    SAVED ROUTES
 ──────────────────────────────────────────────── */
+
+
+section#saved-routes {
+    padding-left: 10px;
+    padding-top: 20px;
+}
+
 .saved-header {
   display: flex;
   align-items: center;
@@ -649,7 +671,7 @@ body,
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 220px;
+  max-height: 176px;
   overflow-y: auto;
   overflow-x: hidden;
   -ms-overflow-style: none;
@@ -667,7 +689,7 @@ body,
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 6px;
+  padding: 8px 0px;
   border-bottom: 1px solid #f1f3f4;
   cursor: pointer;
 }
@@ -745,4 +767,5 @@ body,
 #diff-dropdown,
 .route-options {
   margin-bottom: 10px;
+  margin-top: 20px;
 }

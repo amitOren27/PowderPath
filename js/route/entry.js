@@ -1,8 +1,6 @@
 import { loadGoogle } from '../maps/loader.js';
 import { on } from '../core/events.js';
-import {
-  initRouteUI, render, positionOverlays, mountRecentUI, renderRecent
-} from './ui.js';
+import { initRouteUI, render, positionOverlays, mountRecentUI, renderRecent } from './ui.js';
 import { getRoute, getAllowedDifficulties, setPlaceAt, removeStopAt, addStopBeforeDestination } from './state.js';
 
 import * as draw from './draw.js';
@@ -18,9 +16,12 @@ import { requireLogin } from '../core/auth.js';
 
 import { saveRecentLocation } from './recent_locations.js';
 import { fetchRecentLocations } from './recent_api.js';
+import { enrichRecentWithPhotos } from '../recent_locations/photos.js';
 
 import { saveRoute } from './saved_api.js';
 import { initSavedRoutes, refreshSavedRoutes } from './saved_routes.js';
+
+import { fetchSmartRoute } from './smart.js';
 
 let currentAbort = null;
 let _map = null;
@@ -108,7 +109,7 @@ async function bootstrap() {
   if (window.__pp_flags.route_bootstrapped) return;
   window.__pp_flags.route_bootstrapped = true;
 
-  const userId = await requireLogin();
+  //const userId = await requireLogin();
 
   await loadGoogle({ libraries: ['places', 'marker', 'geometry'] });
 
@@ -119,7 +120,7 @@ async function bootstrap() {
     mapTypeId: 'terrain',
     mapId: 'POWDERPATH_BASE'
   });
-  _map = map; // ← חשוב להדגשה
+  _map = map;
 
   let poiMarker = null; // marker for POI clicks (separate from route pins)
 
@@ -213,19 +214,24 @@ async function bootstrap() {
     new MutationObserver(moveRecentOut).observe(diffPanel, { childList: true, subtree: true });
   }
 
-  // טעינת נתונים והצגה
+  // Places plumbing (shared with home page)
+  const infoWindow = new google.maps.InfoWindow();
+  const placesSvc = new google.maps.places.PlacesService(map);
+
   try {
     const recent = await fetchRecentLocations(10);
+    let recentWithPhotos = recent;
+    try {
+      recentWithPhotos = await enrichRecentWithPhotos(recent, placesSvc);
+    } catch (photoErr) {
+      console.warn('[recent] photo enrichment failed, showing without photos:', photoErr);
+    }
     if (typeof renderRecent === 'function') {
-      renderRecent(recent);
+      renderRecent(recentWithPhotos);
     }
   } catch (e) {
     console.error('[recent] load failed:', e);
   }
-
-  // Places plumbing (shared with home page)
-  const infoWindow = new google.maps.InfoWindow();
-  const placesSvc = new google.maps.places.PlacesService(map);
 
   wirePOIClicks({
     map,
@@ -297,51 +303,93 @@ async function bootstrap() {
         }
 
         const allowed = getAllowedDifficulties();
-        const { path, segments, fallbacks, walking } =
-          await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
 
-        // Clear then draw
+        // ───── SMART ROUTING with graceful fallback ─────
+        let path = [], segments = [], fallbacks = [];
+        let walkingPaths = [], connectorPaths = [];
+
+        try {
+          // Try the smart multi-leg optimizer flow
+          const smart = await fetchSmartRoute(filled, signal, {
+            k: 3,
+            allowedDifficulties: allowed,
+            weights: { w_walk: 3.0, w_route: 1.0 }
+          });
+
+          path = smart.path || [];
+          segments = smart.segments || [];
+          fallbacks = smart.fallbacks || [];
+          walkingPaths = smart.walkingPaths || [];
+          connectorPaths = smart.connectorPaths || [];
+
+        } catch (smartErr) {
+          // If this instance was superseded by a newer change, just stop.
+          if (smartErr?.name === 'AbortError' || signal.aborted) {
+            // Do NOT fall back on abort; a newer render is already in flight.
+            return;
+          }
+          console.warn('[smart] failed (non-abort), falling back to basic flow:', smartErr);
+
+          // Fallback to the existing per-leg Lambda
+          const basic = await fetchMultiLeg(filled, signal, { allowedDifficulties: allowed });
+          // If we got aborted while waiting for fallback, stop here as well.
+          if (signal.aborted) return;
+
+          path = basic.path || [];
+          segments = basic.segments || [];
+          fallbacks = basic.fallbacks || [];
+
+          // Compute walking for basic flow (snapped_start/end hints)
+          const walkPromises = [];
+          const connectors = [];
+          for (const hint of (basic.walking || [])) {
+            if (signal.aborted) break;
+
+            if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
+              walkPromises.push(
+                getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
+                  .then(p => {
+                    if (!signal.aborted) {
+                      connectors.push(...getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, p));
+                    }
+                    return p;
+                  })
+                  .catch(() => [])
+              );
+            }
+            if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
+              walkPromises.push(
+                getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
+                  .then(p => {
+                    if (!signal.aborted) {
+                      connectors.push(...getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, p));
+                    }
+                    return p;
+                  })
+                  .catch(() => [])
+              );
+            }
+          }
+          const wr = await Promise.all(walkPromises);
+          if (signal.aborted) return;
+
+          walkingPaths = wr.filter(p => Array.isArray(p) && p.length > 1);
+          connectorPaths = connectors;
+        }
+
+        // Draw everything
         draw.clearRoute();
         clearHighlight();
         draw.drawSegments(segments);
         draw.drawFallbacks(fallbacks);
-
-        // Walking connectors (async batch)
-        const walkPromises = [];
-        const connectorPaths = [];
-        for (const hint of (walking || [])) {
-          if (hint?.toSnap?.origin && hint?.toSnap?.destination) {
-            walkPromises.push(
-              getWalkingPath(hint.toSnap.origin, hint.toSnap.destination, signal)
-                .then(path => {
-                  const conns = getWalkingConnectors(hint.toSnap.origin, hint.toSnap.destination, path);
-                  if (conns.length) connectorPaths.push(...conns);
-                  return path;
-                })
-                .catch(() => [])
-            );
-          }
-          if (hint?.fromSnap?.origin && hint?.fromSnap?.destination) {
-            walkPromises.push(
-              getWalkingPath(hint.fromSnap.origin, hint.fromSnap.destination, signal)
-                .then(path => {
-                  const conns = getWalkingConnectors(hint.fromSnap.origin, hint.fromSnap.destination, path);
-                  if (conns.length) connectorPaths.push(...conns);
-                  return path;
-                })
-                .catch(() => [])
-            );
-          }
-        }
-        const walkResults = await Promise.all(walkPromises);
-        const walkPaths = walkResults.filter(p => Array.isArray(p) && p.length > 1);
-        draw.drawWalkingPolylines(walkPaths);
-        draw.drawWalkingConnectors(connectorPaths);
-
+        if (walkingPaths.length) draw.drawWalkingPolylines(walkingPaths);
+        if (connectorPaths.length) draw.drawWalkingConnectors(connectorPaths);
         draw.fitToRoute(path, fallbacks);
+
+        // Itinerary (uses only ski/lift segments for now)
         updateItinerary({
           segments,
-          walkPaths,
+          walkPaths: walkingPaths,
           fallbacks,
           totalPath: path
         });
@@ -540,7 +588,6 @@ function updateItinerary({ segments = [], walkPaths = [], fallbacks = [], totalP
   if (!Array.isArray(segments) || segments.length === 0) {
     summaryEl.innerHTML = `<div><strong>No Route</strong></div>`;
     stepsEl.innerHTML = '';
-    document.getElementById('itinerary')?.classList.remove('collapsed');
     _itSteps = [];
     return;
   }
@@ -577,7 +624,6 @@ function updateItinerary({ segments = [], walkPaths = [], fallbacks = [], totalP
   }).join('');
 
   stepsEl.innerHTML = rows;
-  document.getElementById('itinerary')?.classList.remove('collapsed');
 
   // קליק על שורה → הדגשת המקטע המתאים
   stepsEl.querySelectorAll('li').forEach(li => {
@@ -607,7 +653,7 @@ async function onSaveRouteClick() {
     const start = {
       name: stops[0]?.place?.name || 'Start',
       lat: typeof s0.lat === 'function' ? s0.lat() : s0.lat,
-      lng: typeof s0.lng === 'function' ? s0.lng() : s0.lng
+      lng: typeof s1.lng === 'function' ? s0.lng() : s0.lng
     };
     const end = {
       name: stops[1]?.place?.name || 'End',
@@ -670,4 +716,3 @@ async function onSavedRouteSelect(ev) {
     console.error('[saved:select] failed:', err);
   }
 }
-

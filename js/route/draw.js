@@ -40,7 +40,7 @@ export function clearRoute() {
  */
 export function drawSegments(segments = []) {
   // Clear previous
-  clearRoute();
+  // clearRoute();
 
   if (!map || !segments.length) return;
 

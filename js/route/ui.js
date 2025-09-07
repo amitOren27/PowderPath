@@ -1,3 +1,5 @@
+
+import { GOOGLE_API_KEY } from '../maps/loader.js'
 import { emit } from '../core/events.js';
 import { attachAutocomplete } from '../places/autocomplete.js';
 import { getColorByDifficulty } from '../map/common/draw.js';
@@ -336,19 +338,12 @@ function escapeHTML(s = '') {
 }
 
 // ── Thumbs (Static Maps) ──
-function getMapsApiKey() {
-  const s = Array.from(document.scripts).find(sc => sc.src.includes('maps.googleapis.com/maps/api/js'));
-  if (!s) return '';
-  try { return new URL(s.src).searchParams.get('key') || ''; }
-  catch { return ''; }
-}
-const _STATIC_KEY = getMapsApiKey();
-
 function staticThumb(lat, lng) {
-  if (!_STATIC_KEY) return '';
+  if (!GOOGLE_API_KEY) return '';
   const p = `${lat},${lng}`;
-  return `https://maps.googleapis.com/maps/api/staticmap?key=${_STATIC_KEY}&center=${p}&zoom=16&size=80x80&scale=2&maptype=terrain&markers=color:0x4285F4|${p}`;
+  return `https://maps.googleapis.com/maps/api/staticmap?key=${GOOGLE_API_KEY}&center=${p}&zoom=16&size=80x80&scale=2&maptype=terrain&markers=color:0x4285F4|${p}`;
 }
+
 
 // ── Ratings enrichment (lazy) ──
 let _placesSvc;
