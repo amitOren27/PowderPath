@@ -17,7 +17,6 @@ function initLeftNav() {
   const items = [
     { href: 'index.html',         icon: 'home',      label: 'Home (Map)' },
     { href: 'route_planner.html', icon: 'directions',  label: 'Directions' },
-    { href: 'weather.html',       icon: 'cloud',     label: 'Weather' },
   ];
 
   const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
