@@ -126,9 +126,10 @@ export async function fetchSmartRoute(stopsInOrder, signal, {
     }),
     signal
   });
-  if (!optResp.ok) throw new Error(`optimize HTTP ${optResp.status}`);
-  const opt = await optResp.json();
 
+  if (!optResp.ok) throw new Error(`optimize HTTP ${optResp.status}`);
+
+  const opt = await optResp.json();
   const segments = normalizeRouteSegments(opt?.route || []);
   const path = segments.flatMap(s => s.path || []);
 
@@ -144,6 +145,27 @@ export async function fetchSmartRoute(stopsInOrder, signal, {
     if (cached?.path?.length > 1) walkingPaths.push(cached.path);
     if (Array.isArray(cached?.connectors) && cached.connectors.length) {
       connectorPaths.push(...cached.connectors);
+    }
+  }
+
+  const legsArr = Array.isArray(opt?.legs) ? opt.legs : [];
+  for (let i = 1; i < layers.length; i++) {
+    const legPrev = legsArr[i - 1];
+    if (!legPrev || !Number.isInteger(legPrev.to_idx)) continue;
+
+    const arrIdx = legPrev.to_idx;
+    const arrCand = layers[i]?.[arrIdx];
+    if (!arrCand) continue;
+
+    // If snapped[i] already equals the arrival candidate, we already drew it.
+    const depCandId = snapped?.[i]?.id;
+    if (depCandId === arrCand.id) continue;
+
+    const key = `${i}:${arrCand.id}`;
+    const cached = walkCache.get(key);
+    if (cached?.path?.length > 1) walkingPaths.push(cached.path);
+    if (Array.isArray(cached?.connectors) && cached.connectors.length) {
+        connectorPaths.push(...cached.connectors);
     }
   }
 
